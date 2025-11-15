@@ -44,38 +44,41 @@ class DDTG_Shortcode {
         $user_id = get_current_user_id();
 
         global $wpdb;
-        $games_table      = $wpdb->prefix . 'draglearn_games';
-        $attempts_table   = $wpdb->prefix . 'draglearn_attempts';
-        $lessons_table    = $wpdb->prefix . 'draglearn_lessons';
-        $courses_table    = $wpdb->prefix . 'draglearn_courses';
+        $games_table    = $wpdb->prefix . 'ddg_games';
+        $items_table    = $wpdb->prefix . 'ddg_items';
+        $attempts_table = $wpdb->prefix . 'ddg_attempts';
 
-        $game = $wpdb->get_row( $wpdb->prepare( "SELECT max_attempts FROM {$games_table} WHERE game_id = %d", $game_id ) );
+        $game = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE game_id = %d", $game_id ) );
 
         if ( ! $game ) {
             return '<p>' . esc_html__( 'Game not found.', 'draglearn' ) . '</p>';
         }
 
-        $max_attempts = $game->max_attempts;
-        $user_attempts = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(attempt_id) FROM {$attempts_table} WHERE user_id = %d AND game_id = %d",
-                $user_id,
-                $game_id
-            )
-        );
+        $user_id = get_current_user_id();
 
-        if ( $max_attempts > 0 && $user_attempts >= $max_attempts ) {
-            return '<p>' . esc_html__( 'You have reached the maximum number of attempts for this game.', 'draglearn' ) . '</p>';
+        // Handle attempts
+        $max_attempts = $game->max_attempts;
+        if ( $max_attempts > 0 ) {
+            $user_attempts = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(attempt_id) FROM {$attempts_table} WHERE user_id = %d AND game_id = %d",
+                    $user_id,
+                    $game_id
+                )
+            );
+
+            if ( $user_attempts >= $max_attempts ) {
+                return '<p>' . esc_html__( 'You have reached the maximum number of attempts for this game.', 'draglearn' ) . '</p>';
+            }
         }
 
         $wpdb->insert(
             $attempts_table,
             array(
-                'user_id'     => $user_id,
-                'game_id'     => $game_id,
-                'start_time'  => current_time( 'mysql', 1 ),
-            ),
-            array( '%d', '%d', '%s' )
+                'user_id'    => $user_id,
+                'game_id'    => $game_id,
+                'start_time' => current_time( 'mysql', 1 ),
+            )
         );
         $attempt_id = $wpdb->insert_id;
 
@@ -91,59 +94,44 @@ class DDTG_Shortcode {
             )
         );
 
-        $courses_results = $wpdb->get_results(
+        $items = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$courses_table} ORDER BY RAND() LIMIT %d",
-                5
+                "SELECT item_title, sort_value FROM {$items_table} WHERE game_id = %d ORDER BY RAND() LIMIT %d",
+                $game_id,
+                $game->num_items_to_show
             )
         );
 
-        if ( empty( $courses_results ) ) {
-            return '<p>' . esc_html__( 'No courses found to start the game.', 'draglearn' ) . '</p>';
+        if ( empty( $items ) ) {
+            return '<p>' . esc_html__( 'No items found for this game.', 'draglearn' ) . '</p>';
         }
 
-        $lessons = array();
-        $courses = array();
-
-        foreach ( $courses_results as $course ) {
-            $courses[] = $course->course_name;
-            $lesson_result = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT * FROM {$lessons_table} WHERE course_id = %d ORDER BY RAND() LIMIT %d",
-                    $course->course_id,
-                    1
-                )
-            );
-
-            if ( ! empty( $lesson_result ) ) {
-                $lessons[] = array(
-                    'title'  => $lesson_result->lesson_title,
-                    'course' => $course->course_name,
-                );
-            }
+        $completions = array();
+        foreach ( $items as $item ) {
+            $completions[] = $item->sort_value;
         }
-
-        shuffle( $lessons );
-        shuffle( $courses );
+        shuffle( $completions );
+        shuffle( $items );
 
         ob_start();
         ?>
         <div id="draglearn-game" data-attempt-id="<?php echo esc_attr( $attempt_id ); ?>">
-            <h2><?php esc_html_e( 'Match the Lessons to the Courses', 'draglearn' ); ?></h2>
+            <h2><?php echo esc_html( $game->name ); ?></h2>
+            <p><?php echo esc_html( $game->description ); ?></p>
             <div class="drag-container">
                 <div id="lessons-pool">
-                    <h3><?php esc_html_e( 'Lessons', 'draglearn' ); ?></h3>
-                    <?php foreach ( $lessons as $lesson ) : ?>
-                        <div class="draggable" draggable="true" data-course="<?php echo esc_attr( $lesson['course'] ); ?>">
-                            <?php echo esc_html( $lesson['title'] ); ?>
+                    <h3><?php esc_html_e( 'Prompts', 'draglearn' ); ?></h3>
+                    <?php foreach ( $items as $item ) : ?>
+                        <div class="draggable" draggable="true" data-course="<?php echo esc_attr( $item->sort_value ); ?>">
+                            <?php echo esc_html( $item->item_title ); ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
                 <div id="courses-zones">
-                    <h3><?php esc_html_e( 'Courses', 'draglearn' ); ?></h3>
-                    <?php foreach ( $courses as $course ) : ?>
-                        <div class="drop-zone" data-course-name="<?php echo esc_attr( $course ); ?>">
-                            <h4><?php echo esc_html( $course ); ?></h4>
+                    <h3><?php esc_html_e( 'Completions', 'draglearn' ); ?></h3>
+                    <?php foreach ( $completions as $completion ) : ?>
+                        <div class="drop-zone" data-course-name="<?php echo esc_attr( $completion ); ?>">
+                            <h4><?php echo esc_html( $completion ); ?></h4>
                         </div>
                     <?php endforeach; ?>
                 </div>

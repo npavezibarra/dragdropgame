@@ -38,7 +38,7 @@ class DDTG_Admin {
      */
     public static function results_page_content() {
         global $wpdb;
-        $games_table = $wpdb->prefix . 'draglearn_games';
+        $games_table = $wpdb->prefix . 'ddg_games';
         $game_id     = isset( $_GET['game_id'] ) ? intval( $_GET['game_id'] ) : 0;
 
         if ( ! $game_id ) {
@@ -62,6 +62,13 @@ class DDTG_Admin {
     }
 
     /**
+     * Display the "Add New" page content.
+     */
+    public static function create_game_page_content() {
+        DDTG_Add_New::add_new_page_content();
+    }
+
+    /**
      * Handle the AJAX score submission.
      */
     public static function handle_score_submission() {
@@ -69,7 +76,7 @@ class DDTG_Admin {
         check_ajax_referer( 'ddtg_game_nonce', 'nonce' );
 
         global $wpdb;
-        $attempts_table = $wpdb->prefix . 'draglearn_attempts';
+        $attempts_table = $wpdb->prefix . 'ddg_attempts';
 
         $attempt_id = isset( $_POST['attempt_id'] ) ? intval( $_POST['attempt_id'] ) : 0;
         $score      = isset( $_POST['score'] ) ? intval( $_POST['score'] ) : 0;

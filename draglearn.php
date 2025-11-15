@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Define DRAGLEARN_VERSION.
  */
-define( 'DRAGLEARN_VERSION', '1.0' );
+define( 'DRAGLEARN_VERSION', '1.3' );
 
 /**
  * Include the installer class.
@@ -64,6 +64,15 @@ function draglearn_admin_menu() {
 
     add_submenu_page(
         'ddtg-my-games',
+        __( 'Add New', 'draglearn' ),
+        __( 'Add New', 'draglearn' ),
+        'manage_options',
+        'ddtg-create-game',
+        array( 'DDTG_Admin', 'create_game_page_content' )
+    );
+
+    add_submenu_page(
+        'ddtg-my-games',
         __( 'Game Results', 'draglearn' ),
         __( 'Game Results', 'draglearn' ),
         'manage_options',
@@ -81,6 +90,7 @@ add_action( 'admin_menu', 'draglearn_admin_menu' );
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-games-list-table.php';
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-results-list-table.php';
+include_once dirname( __FILE__ ) . '/includes/class-ddtg-add-new.php';
 
 /**
  * Include the admin class.

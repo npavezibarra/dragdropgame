@@ -42,7 +42,7 @@ class DDTG_Results_List_Table extends WP_List_Table {
 
     public function prepare_items() {
         global $wpdb;
-        $attempts_table = $wpdb->prefix . 'draglearn_attempts';
+        $attempts_table = $wpdb->prefix . 'ddg_attempts';
         $users_table    = $wpdb->prefix . 'users';
 
         $sortable_columns = $this->get_sortable_columns();
