@@ -45,27 +45,42 @@ add_action( 'plugins_loaded', 'draglearn_update_check' );
  */
 function draglearn_admin_menu() {
     add_menu_page(
-        __( 'DragLearn Courses', 'draglearn' ),
+        __( 'DragLearn', 'draglearn' ),
         __( 'DragLearn', 'draglearn' ),
         'manage_options',
-        'draglearn-courses',
-        'draglearn_courses_page_html',
+        'ddtg-my-games',
+        array( 'DDTG_Admin', 'my_games_page_content' ),
         'dashicons-welcome-learn-more'
     );
+
+    add_submenu_page(
+        'ddtg-my-games',
+        __( 'My Games', 'draglearn' ),
+        __( 'My Games', 'draglearn' ),
+        'manage_options',
+        'ddtg-my-games',
+        array( 'DDTG_Admin', 'my_games_page_content' )
+    );
+
+    add_submenu_page(
+        'ddtg-my-games',
+        __( 'Game Results', 'draglearn' ),
+        __( 'Game Results', 'draglearn' ),
+        'manage_options',
+        'ddtg-game-results',
+        array( 'DDTG_Admin', 'results_page_content' )
+    );
+
+    // This hides the "Game Results" page from the menu, but it's still accessible.
+    remove_submenu_page( 'ddtg-my-games', 'ddtg-game-results' );
 }
 add_action( 'admin_menu', 'draglearn_admin_menu' );
 
 /**
- * Admin page content.
+ * Include the list table classes.
  */
-function draglearn_courses_page_html() {
-    ?>
-    <div class="wrap">
-        <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-        <p><?php esc_html_e( 'Welcome to the DragLearn courses page.', 'draglearn' ); ?></p>
-    </div>
-    <?php
-}
+include_once dirname( __FILE__ ) . '/includes/class-ddtg-games-list-table.php';
+include_once dirname( __FILE__ ) . '/includes/class-ddtg-results-list-table.php';
 
 /**
  * Include the admin class.
