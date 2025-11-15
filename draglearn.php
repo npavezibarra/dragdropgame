@@ -90,7 +90,6 @@ add_action( 'admin_menu', 'draglearn_admin_menu' );
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-games-list-table.php';
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-results-list-table.php';
-include_once dirname( __FILE__ ) . '/includes/class-ddtg-add-new.php';
 
 /**
  * Include the admin class.
