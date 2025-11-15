@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const game = document.getElementById('draglearn-game');
     const draggables = document.querySelectorAll('.draggable');
     const dropZones = document.querySelectorAll('.drop-zone');
     const feedback = document.getElementById('feedback');
+    const attemptId = game.dataset.attemptId;
     let correctlyPlaced = 0;
     let draggedItem = null;
 
@@ -41,6 +43,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if (correctlyPlaced === draggables.length) {
                         feedback.textContent = 'Congratulations! You have matched all the lessons correctly.';
+                        // All items placed, send score to server
+                        const score = correctlyPlaced; // Or any other scoring logic
+                        jQuery.ajax({
+                            url: ddtg_game_data.ajax_url,
+                            type: 'POST',
+                            data: {
+                                action: 'record_score',
+                                nonce: ddtg_game_data.nonce,
+                                attempt_id: attemptId,
+                                score: score
+                            },
+                            success: function(response) {
+                                if(response.success) {
+                                    feedback.textContent += ' Your score has been saved.';
+                                } else {
+                                    feedback.textContent += ' There was an error saving your score.';
+                                }
+                            }
+                        });
                     }
                 } else {
                     feedback.textContent = 'Wrong course! Try again.';
