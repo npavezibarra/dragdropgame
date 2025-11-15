@@ -68,6 +68,17 @@ function draglearn_courses_page_html() {
 }
 
 /**
+ * Include the admin class.
+ */
+include_once dirname( __FILE__ ) . '/includes/class-ddtg-admin.php';
+
+/**
+ * AJAX hooks for score submission.
+ */
+add_action( 'wp_ajax_record_score', array( 'DDTG_Admin', 'handle_score_submission' ) );
+add_action( 'wp_ajax_nopriv_record_score', array( 'DDTG_Admin', 'handle_score_submission' ) );
+
+/**
  * Include the shortcode class.
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-shortcode.php';
