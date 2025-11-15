@@ -64,7 +64,7 @@ class DDTG_Admin {
     /**
      * Display the "Add New" page content.
      */
-    public static function create_game_page_content() {
+    public static function add_new_page_content() {
         DDTG_Add_New::add_new_page_content();
     }
 

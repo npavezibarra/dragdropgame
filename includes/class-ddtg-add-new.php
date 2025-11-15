@@ -45,41 +45,12 @@ class DDTG_Add_New {
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_num_items_to_show"><?php esc_html_e( 'Number of Items to Show', 'draglearn' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="number" id="ddtg_num_items_to_show" name="ddtg_num_items_to_show" class="regular-text" />
-                        </td>
-                    </tr>
-                    <tr valign="top">
-                        <th scope="row">
-                            <label for="ddtg_max_attempts"><?php esc_html_e( 'Max Attempts per User', 'draglearn' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="number" id="ddtg_max_attempts" name="ddtg_max_attempts" class="regular-text" />
-                        </td>
-                    </tr>
-                    <tr valign="top">
-                        <th scope="row">
-                            <label for="ddtg_attempts_period"><?php esc_html_e( 'Attempts Period', 'draglearn' ); ?></label>
-                        </th>
-                        <td>
-                            <select id="ddtg_attempts_period" name="ddtg_attempts_period">
-                                <option value="unlimited"><?php esc_html_e( 'Unlimited', 'draglearn' ); ?></option>
-                                <option value="daily"><?php esc_html_e( 'Daily', 'draglearn' ); ?></option>
-                                <option value="weekly"><?php esc_html_e( 'Weekly', 'draglearn' ); ?></option>
-                                <option value="monthly"><?php esc_html_e( 'Monthly', 'draglearn' ); ?></option>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr valign="top">
-                        <th scope="row">
                             <label for="ddtg_csv_file"><?php esc_html_e( 'CSV File', 'draglearn' ); ?></label>
                         </th>
                         <td>
                             <input type="file" id="ddtg_csv_file" name="ddtg_csv_file" accept=".csv" required />
                             <p class="description">
-                                <?php esc_html_e( 'Upload a CSV file with three columns: "item_title", "description", and "sort_value".', 'draglearn' ); ?>
+                                <?php esc_html_e( 'Upload a CSV file with two columns: "prompt" and "completion".', 'draglearn' ); ?>
                             </p>
                         </td>
                     </tr>
@@ -95,15 +66,12 @@ class DDTG_Add_New {
      */
     private static function handle_form_submission() {
         global $wpdb;
-        $games_table = $wpdb->prefix . 'ddg_games';
-        $items_table = $wpdb->prefix . 'ddg_items';
+        $games_table  = $wpdb->prefix . 'ddg_games';
+        $events_table = $wpdb->prefix . 'ddg_events';
 
-        $game_name          = isset( $_POST['ddtg_game_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_game_name'] ) ) : '';
-        $game_description   = isset( $_POST['ddtg_game_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ddtg_game_description'] ) ) : '';
-        $num_items_to_show  = isset( $_POST['ddtg_num_items_to_show'] ) ? intval( $_POST['ddtg_num_items_to_show'] ) : 0;
-        $max_attempts       = isset( $_POST['ddtg_max_attempts'] ) ? intval( $_POST['ddtg_max_attempts'] ) : 0;
-        $attempts_period    = isset( $_POST['ddtg_attempts_period'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_attempts_period'] ) ) : 'unlimited';
-        $csv_file           = isset( $_FILES['ddtg_csv_file'] ) ? $_FILES['ddtg_csv_file'] : null;
+        $game_name        = isset( $_POST['ddtg_game_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_game_name'] ) ) : '';
+        $game_description = isset( $_POST['ddtg_game_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ddtg_game_description'] ) ) : '';
+        $csv_file         = isset( $_FILES['ddtg_csv_file'] ) ? $_FILES['ddtg_csv_file'] : null;
 
         if ( ! $game_name || ! $csv_file || UPLOAD_ERR_OK !== $csv_file['error'] ) {
             // Handle error: Missing fields or file upload error.
@@ -121,11 +89,8 @@ class DDTG_Add_New {
         $wpdb->insert(
             $games_table,
             [
-                'name'              => $game_name,
-                'description'       => $game_description,
-                'num_items_to_show' => $num_items_to_show,
-                'max_attempts'      => $max_attempts,
-                'attempts_period'   => $attempts_period,
+                'name'        => $game_name,
+                'description' => $game_description,
             ]
         );
         $game_id = $wpdb->insert_id;
@@ -137,12 +102,14 @@ class DDTG_Add_New {
 
             while ( ( $row = fgetcsv( $handle ) ) !== false ) {
                 $wpdb->insert(
-                    $items_table,
+                    $events_table,
                     [
-                        'game_id'     => $game_id,
-                        'item_title'  => $row[0],
-                        'description' => $row[1],
-                        'sort_value'  => $row[2],
+                        'game_id'    => $game_id,
+                        'event_type' => 'pair',
+                        'event_data' => wp_json_encode( [
+                            'prompt'     => $row[0],
+                            'completion' => $row[1],
+                        ] ),
                     ]
                 );
             }

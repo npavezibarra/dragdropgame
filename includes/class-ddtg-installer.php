@@ -60,21 +60,17 @@ CREATE TABLE {$wpdb->prefix}ddg_games (
   game_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
   description TEXT,
-  num_items_to_show INT,
-  max_attempts INT,
-  attempts_period VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (game_id)
 ) $collate;
 
-CREATE TABLE {$wpdb->prefix}ddg_items (
-  item_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+CREATE TABLE {$wpdb->prefix}ddg_events (
+  event_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   game_id BIGINT UNSIGNED NOT NULL,
-  item_title VARCHAR(255) NOT NULL,
-  description TEXT,
-  sort_value VARCHAR(255),
+  event_type VARCHAR(50) NOT NULL,
+  event_data TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (item_id),
+  PRIMARY KEY (event_id),
   KEY game_id (game_id)
 ) $collate;
 

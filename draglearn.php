@@ -68,7 +68,7 @@ function draglearn_admin_menu() {
         __( 'Add New', 'draglearn' ),
         'manage_options',
         'ddtg-create-game',
-        array( 'DDTG_Admin', 'create_game_page_content' )
+        array( 'DDTG_Admin', 'add_new_page_content' )
     );
 
     add_submenu_page(
