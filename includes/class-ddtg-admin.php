@@ -22,7 +22,12 @@ class DDTG_Admin {
         $games_list_table->prepare_items();
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'My Games', 'draglearn' ); ?></h1>
+            <h1>
+                <?php esc_html_e( 'My Games', 'draglearn' ); ?>
+                <a href="<?php echo admin_url( 'admin.php?page=ddtg-create-game' ); ?>" class="page-title-action">
+                    <?php esc_html_e( 'Add New', 'draglearn' ); ?>
+                </a>
+            </h1>
             <?php $games_list_table->display(); ?>
         </div>
         <?php
