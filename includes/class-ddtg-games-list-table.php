@@ -36,7 +36,7 @@ class DDTG_Games_List_Table extends WP_List_Table {
 
     function prepare_items() {
         global $wpdb;
-        $games_table = $wpdb->prefix . 'draglearn_games';
+        $games_table = $wpdb->prefix . 'ddg_games';
 
         $this->_column_headers = array( $this->get_columns(), array(), array() );
         $this->items = $wpdb->get_results( "SELECT game_id, name FROM {$games_table} ORDER BY name ASC" );
