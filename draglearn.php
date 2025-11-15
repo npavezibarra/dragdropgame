@@ -66,3 +66,9 @@ function draglearn_courses_page_html() {
     </div>
     <?php
 }
+
+/**
+ * Include the shortcode class.
+ */
+include_once dirname( __FILE__ ) . '/includes/class-ddtg-shortcode.php';
+add_action( 'init', array( 'DDTG_Shortcode', 'init' ) );
