@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Define DRAGLEARN_VERSION.
+ * Define DDTG_DB_VERSION.
  */
-define( 'DRAGLEARN_VERSION', '1.0' );
+define( 'DDTG_DB_VERSION', '1.1' );
 
 /**
  * Include the installer class.
@@ -34,7 +34,7 @@ register_activation_hook( __FILE__, 'draglearn_activate' );
  * Plugin update logic.
  */
 function draglearn_update_check() {
-    if ( get_option( 'draglearn_version' ) !== DRAGLEARN_VERSION ) {
+    if ( get_option( 'draglearn_version' ) !== DDTG_DB_VERSION ) {
         DDTG_Installer::install();
     }
 }
@@ -90,7 +90,6 @@ add_action( 'admin_menu', 'draglearn_admin_menu' );
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-games-list-table.php';
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-results-list-table.php';
-include_once dirname( __FILE__ ) . '/includes/class-ddtg-add-new.php';
 
 /**
  * Include the admin class.

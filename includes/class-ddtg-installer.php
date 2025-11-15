@@ -42,11 +42,11 @@ class DDTG_Installer {
     }
 
     /**
-     * Get Schema.
+     * Get Schema SQL.
      *
      * @return string
      */
-    private static function get_schema() {
+    private static function get_schema_sql() {
         global $wpdb;
 
         $collate = '';
@@ -57,11 +57,17 @@ class DDTG_Installer {
 
         $tables = "
 CREATE TABLE {$wpdb->prefix}ddg_games (
-  game_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (game_id)
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    game_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    shortcode_slug VARCHAR(100) NOT NULL,
+    num_events_to_show INT NOT NULL,
+    attempt_limit INT NOT NULL DEFAULT -1,
+    limit_period VARCHAR(20) NOT NULL DEFAULT 'total',
+    date_created DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY (shortcode_slug)
 ) $collate;
 
 CREATE TABLE {$wpdb->prefix}ddg_events (
@@ -101,13 +107,13 @@ CREATE TABLE {$wpdb->prefix}ddg_attempts (
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        dbDelta( self::get_schema() );
+        dbDelta( self::get_schema_sql() );
     }
 
     /**
      * Update DragLearn version to current.
      */
     private static function update_version() {
-        update_option( 'draglearn_version', DRAGLEARN_VERSION );
+        update_option( 'draglearn_version', DDTG_DB_VERSION );
     }
 }
