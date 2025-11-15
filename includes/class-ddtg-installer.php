@@ -114,6 +114,6 @@ CREATE TABLE {$wpdb->prefix}ddg_attempts (
      * Update DragLearn version to current.
      */
     private static function update_version() {
-        update_option( 'draglearn_version', DRAGLEARN_VERSION );
+        update_option( 'draglearn_version', DDTG_DB_VERSION );
     }
 }
