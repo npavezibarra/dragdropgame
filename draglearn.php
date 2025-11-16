@@ -72,7 +72,7 @@ function draglearn_admin_menu() {
         array( 'DDTG_Admin', 'my_games_page_content' )
     );
 
-    add_submenu_page(
+    $add_new_hook = add_submenu_page(
         'ddtg-my-games',
         __( 'Add New', 'draglearndtg' ),
         __( 'Add New', 'draglearndtg' ),
@@ -80,6 +80,7 @@ function draglearn_admin_menu() {
         'ddtg-create-game',
         array( 'DDTG_Admin', 'add_new_page_content' )
     );
+    add_action( 'load-' . $add_new_hook, array( 'DDTG_Add_New', 'handle_form_submission_action' ) );
 
     add_submenu_page(
         'ddtg-my-games',
