@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Define DRAGLEARN_VERSION.
  */
-define( 'DRAGLEARN_VERSION', '1.3' );
+define( 'DRAGLEARN_VERSION', '1.4' );
 
 /**
  * Include the installer class.

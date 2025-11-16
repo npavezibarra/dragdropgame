@@ -54,7 +54,7 @@ class DDTG_Add_New {
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_number_of_slots"><?php esc_html_e( 'Number of Slots', 'draglearndtg' ); ?></label>
+                            <label for="ddtg_number_of_slots"><?php esc_html_e( 'Number of Items', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
                             <input type="number" id="ddtg_number_of_slots" name="ddtg_number_of_slots" class="regular-text" value="<?php echo $is_edit ? esc_attr( $game->num_items_to_show ) : ''; ?>" required />
@@ -125,8 +125,8 @@ class DDTG_Add_New {
         $game_name         = isset( $_POST['ddtg_game_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_game_name'] ) ) : '';
         $game_description  = isset( $_POST['ddtg_game_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ddtg_game_description'] ) ) : '';
         $num_items_to_show = isset( $_POST['ddtg_number_of_slots'] ) ? intval( $_POST['ddtg_number_of_slots'] ) : 0;
-        $max_attempts      = isset( $_POST['ddtg_attempts_number'] ) ? intval( $_POST['ddtg_attempts_number'] ) : 0;
-        $attempts_period   = isset( $_POST['ddtg_attempts_period'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_attempts_period'] ) ) : 'unlimited';
+        $attempt_limit     = isset( $_POST['ddtg_attempts_number'] ) ? intval( $_POST['ddtg_attempts_number'] ) : 0;
+        $limit_period      = isset( $_POST['ddtg_attempts_period'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_attempts_period'] ) ) : 'unlimited';
         $csv_file          = isset( $_FILES['ddtg_csv_file'] ) ? $_FILES['ddtg_csv_file'] : null;
 
         if ( ! $game_name || ! $num_items_to_show || ( ! $is_edit && ( ! $csv_file || UPLOAD_ERR_OK !== $csv_file['error'] ) ) ) {

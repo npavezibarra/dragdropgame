@@ -45,7 +45,7 @@ class DDTG_Admin {
             wp_die( esc_html__( 'Invalid game ID.', 'draglearndtg' ) );
         }
 
-        $game = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$games_table} WHERE game_id = %d", $game_id ) );
+        $game = $wpdb->get_row( $wpdb->prepare( "SELECT game_name FROM {$games_table} WHERE id = %d", $game_id ) );
 
         if ( ! $game ) {
             wp_die( esc_html__( 'Game not found.', 'draglearndtg' ) );
