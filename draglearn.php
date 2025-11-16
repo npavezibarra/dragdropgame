@@ -51,6 +51,31 @@ function draglearn_load_textdomain() {
 add_action( 'plugins_loaded', 'draglearn_load_textdomain' );
 
 /**
+ * Register frontend assets for the game.
+ */
+function ddg_register_assets() {
+    error_log( 'DDG_ASSETS: Registering/Loading game script...' );
+
+    wp_register_script(
+        'ddg-game-script',
+        plugins_url( '/assets/js/ddg-game.js', __FILE__ ),
+        array(),
+        '1.0',
+        true
+    );
+
+    error_log( 'DDG_ASSETS: Script path = ' . plugins_url( '/assets/js/ddg-game.js', __FILE__ ) );
+
+    wp_register_style(
+        'ddg-game-style',
+        plugins_url( 'assets/css/new-game.css', __FILE__ ),
+        array(),
+        '1.0'
+    );
+}
+add_action( 'wp_enqueue_scripts', 'ddg_register_assets' );
+
+/**
  * Add admin menu.
  */
 function draglearn_admin_menu() {
@@ -107,6 +132,11 @@ include_once dirname( __FILE__ ) . '/includes/class-ddtg-add-new.php';
  * Include the admin class.
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-admin.php';
+
+/**
+ * Include attempt handling.
+ */
+include_once dirname( __FILE__ ) . '/includes/class-ddtg-attempts.php';
 
 add_action( 'admin_post_ddtg_delete_game', array( 'DDTG_Admin', 'handle_delete_game' ) );
 

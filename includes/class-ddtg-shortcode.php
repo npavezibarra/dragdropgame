@@ -47,139 +47,109 @@ class DDTG_Shortcode {
      * @return string
      */
     public static function render_game( $atts, $content = null, $tag = 'dragdropgame' ) {
+        global $wpdb;
+
+        error_log( "DDG_SHORTCODE: Shortcode called" );
+
+        // Sanitize shortcode attributes
         $atts = shortcode_atts(
             array(
                 'game' => '',
             ),
-            $atts,
-            $tag
+            $atts
         );
 
-        $shortcode_slug = sanitize_title( $atts['game'] );
+        error_log( 'DDG_SHORTCODE: Raw atts = ' . print_r( $atts, true ) );
 
-        if ( empty( $shortcode_slug ) ) {
-            return '<p>' . esc_html__( 'A valid game slug is required.', 'draglearndtg' ) . '</p>';
+        $slug = sanitize_title( $atts['game'] );
+        error_log( "DDG_SHORTCODE: Sanitized slug = {$slug}" );
+
+        if ( ! $slug ) {
+            error_log( 'DDG_SHORTCODE ERROR: No slug provided' );
+            return '<p>No game specified.</p>';
         }
 
-        if ( ! is_user_logged_in() ) {
-            return '<p>' . esc_html__( 'You must be logged in to play this game.', 'draglearndtg' ) . '</p>';
-        }
+        //-- Fetch Game -----------------------------------------------------------
 
-        global $wpdb;
-        $games_table = $wpdb->prefix . 'ddg_games';
-        $game        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE shortcode_slug = %s", $shortcode_slug ) );
+        $sql_game = $wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}ddg_games WHERE shortcode_slug = %s",
+            $slug
+        );
+        error_log( "DDG_SHORTCODE: SQL_GAME = {$sql_game}" );
+
+        $game = $wpdb->get_row( $sql_game );
 
         if ( ! $game ) {
-            return '<p>' . esc_html__( 'Game not found.', 'draglearndtg' ) . '</p>';
+            error_log( "DDG_SHORTCODE ERROR: Game not found for slug '{$slug}'" );
+            return '<p>Game not found.</p>';
         }
 
-        $user_id = get_current_user_id();
+        error_log( 'DDG_SHORTCODE: GAME FOUND = ' . print_r( $game, true ) );
 
-        $events = self::get_events_for_game( $game );
+        //-- Fetch Events ---------------------------------------------------------
 
-        if ( empty( $events ) ) {
-            return '<p>' . esc_html__( 'No events found for this game.', 'draglearndtg' ) . '</p>';
+        $sql_events = $wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}ddg_events WHERE game_id = %d ORDER BY id ASC",
+            $game->game_id
+        );
+        error_log( "DDG_SHORTCODE: SQL_EVENTS = {$sql_events}" );
+
+        $events = $wpdb->get_results( $sql_events );
+
+        if ( ! $events || count( $events ) === 0 ) {
+            error_log( "DDG_SHORTCODE ERROR: No events found for game_id {$game->game_id}" );
+            return '<p>No events available yet.</p>';
         }
 
-        $attempt_id = self::create_new_attempt( $game->game_id, $user_id, count( $events ) );
+        error_log( 'DDG_SHORTCODE: EVENTS FOUND = ' . print_r( $events, true ) );
 
-        self::enqueue_game_scripts( $attempt_id, $events );
+        //-- Prepare JS Array -----------------------------------------------------
 
-        return self::render_game_html( $game, $attempt_id );
-    }
+        $js_events = array();
 
-    private static function create_new_attempt( $game_id, $user_id, $total_events ) {
-        global $wpdb;
-        $attempts_table = $wpdb->prefix . 'ddg_attempts';
-
-        $wpdb->insert(
-            $attempts_table,
-            array(
-                'user_id'    => $user_id,
-                'game_id'    => $game_id,
-                'total'      => $total_events,
-                'start_time' => current_time( 'mysql', 1 ),
-            )
-        );
-
-        return $wpdb->insert_id;
-    }
-
-    private static function get_events_for_game( $game ) {
-        global $wpdb;
-        $events_table = $wpdb->prefix . 'ddg_events';
-
-        $limit = max( 1, (int) $game->num_events_to_show );
-
-        $events = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT event_name, event_date, description, image_url FROM {$events_table} WHERE game_id = %d",
-                $game->game_id
-            )
-        );
-
-        if ( empty( $events ) ) {
-            return array();
+        foreach ( $events as $ev ) {
+            $js_events[] = array(
+                'id'          => intval( $ev->id ),
+                'name'        => $ev->event_name,
+                'description' => $ev->description,
+                'date'        => intval( $ev->event_date ),
+                'image'       => $ev->image_url,
+            );
         }
 
-        shuffle( $events );
+        error_log( 'DDG_SHORTCODE: JS_EVENTS = ' . print_r( $js_events, true ) );
 
-        return array_slice( $events, 0, $limit );
-    }
+        $json_events = wp_json_encode( $js_events );
 
-    private static function enqueue_game_scripts( $attempt_id, $events ) {
-        wp_enqueue_style( 'draglearn-game-style', plugins_url( '../assets/css/draglearn-game.css', __FILE__ ) );
-        wp_enqueue_script( 'draglearn-game-script', plugins_url( '../assets/js/draglearn-game.js', __FILE__ ), array( 'jquery' ), DRAGLEARN_VERSION, true );
+        //-- Enqueue assets -------------------------------------------------------
+        error_log( 'DDG_SHORTCODE: Enqueueing scripts…' );
 
-        $localized_events = array_map(
-            static function ( $event ) {
-                return array(
-                    'event_name'  => sanitize_text_field( $event->event_name ),
-                    'event_date'  => sanitize_text_field( $event->event_date ),
-                    'description' => sanitize_textarea_field( $event->description ),
-                    'image_url'   => esc_url_raw( $event->image_url ),
-                );
-            },
-            $events
-        );
+        wp_enqueue_script( 'ddg-game-script' );
+        wp_enqueue_style( 'ddg-game-style' );
 
-        wp_localize_script(
-            'draglearn-game-script',
-            'ddtg_game_data',
-            array(
-                'ajax_url'   => admin_url( 'admin-ajax.php' ),
-                'nonce'      => wp_create_nonce( 'ddtg_game_nonce' ),
-                'attempt_id' => $attempt_id,
-            )
-        );
+        //-- Build HTML -----------------------------------------------------------
 
-        wp_add_inline_script(
-            'draglearn-game-script',
-            'window.dragdropgame_events = ' . wp_json_encode( $localized_events ) . ';',
-            'before'
-        );
-    }
+        error_log( 'DDG_SHORTCODE: Rendering HTML…' );
 
-    private static function render_game_html( $game, $attempt_id ) {
         ob_start();
         ?>
-        <div id="draglearn-game" data-attempt-id="<?php echo esc_attr( $attempt_id ); ?>">
-            <h2><?php echo esc_html( $game->game_name ); ?></h2>
-            <p><?php esc_html_e( 'Match each event with the correct date to complete the timeline.', 'draglearndtg' ); ?></p>
-            <div class="drag-container">
-                <div id="lessons-pool">
-                    <h3><?php esc_html_e( 'Events', 'draglearndtg' ); ?></h3>
-                    <div id="ddtg-events"></div>
-                </div>
-                <div id="courses-zones">
-                    <h3><?php esc_html_e( 'Dates', 'draglearndtg' ); ?></h3>
-                    <div id="ddtg-dates"></div>
-                </div>
-            </div>
-            <button id="finish-game"><?php esc_html_e( 'Finish', 'draglearndtg' ); ?></button>
-            <p id="feedback" class="feedback"></p>
+
+        <script>
+            console.log("DDG: Injecting game_events");
+            const game_events = <?php echo $json_events; ?>;
+            console.log("DDG: game_events =", game_events);
+        </script>
+
+        <div id="ddg-game-wrapper">
+            <header id="top-bar-drop-zone"></header>
+            <main id="main-content-area"></main>
         </div>
+
         <?php
-        return ob_get_clean();
+        $html = ob_get_clean();
+
+        error_log( 'DDG_SHORTCODE: Final HTML length = ' . strlen( $html ) );
+
+        return $html;
     }
 }
