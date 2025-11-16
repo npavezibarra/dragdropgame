@@ -1,30 +1,8 @@
-// game_events will be injected by PHP using wp_add_inline_script()
-
-function submitScore(score) {
-    if (window.ddtg_score_sent) return;
-    window.ddtg_score_sent = true;
-
-    const wrapper = document.getElementById('ddtg-timeline-game-wrapper');
-    if (!wrapper) return;
-
-    const attemptId = wrapper.dataset.attemptId;
-
-    fetch(ddtg_ajax.ajax_url, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `action=ddtg_save_score&attempt_id=${attemptId}&score=${score}`,
-    })
-        .then((res) => res.text())
-        .then(console.log)
-        .catch(console.error);
-}
+// game_events will be injected by PHP using the shortcode renderer.
 
 document.addEventListener('DOMContentLoaded', () => {
-    const wrapper = document.getElementById('ddtg-timeline-game-wrapper');
-
-    if (!wrapper) {
-        return;
-    }
+    const wrapper = document.getElementById('ddg-game-wrapper');
+    if (!wrapper) return;
 
     const events = Array.isArray(window.game_events) ? window.game_events : [];
 
@@ -42,18 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const slides = [];
 
     const parseDate = (value) => {
-        if (value === null || value === undefined) {
-            return null;
-        }
-
-        if (typeof value === 'number') {
-            return value;
-        }
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'number') return value;
 
         const parsed = Date.parse(String(value));
-        if (!Number.isNaN(parsed)) {
-            return parsed;
-        }
+        if (!Number.isNaN(parsed)) return parsed;
 
         const numeric = Number(value);
         return Number.isNaN(numeric) ? null : numeric;
@@ -83,9 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const buildDropZones = () => {
-        if (!dropZoneContainer) {
-            return;
-        }
+        if (!dropZoneContainer) return;
 
         dropZoneContainer.innerHTML = '';
 
@@ -94,9 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             emptyMessage.className = 'text-gray-600';
             emptyMessage.textContent = 'No events available yet.';
             dropZoneContainer.appendChild(emptyMessage);
-            if (finishBtn) {
-                finishBtn.disabled = true;
-            }
+            if (finishBtn) finishBtn.disabled = true;
             return;
         }
 
@@ -105,25 +72,24 @@ document.addEventListener('DOMContentLoaded', () => {
             slot.className = 'flex items-center justify-center bg-gray-100 border border-dashed border-gray-400 rounded-lg min-h-[60px] px-3 py-2 text-center shadow-inner drop-slot placeholder';
             slot.dataset.slotIndex = String(index);
             slot.dataset.expectedDate = event.date ?? '';
+
             slot.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 slot.classList.add('ring-2', 'ring-blue-400');
             });
+
             slot.addEventListener('dragleave', () => {
                 slot.classList.remove('ring-2', 'ring-blue-400');
             });
+
             slot.addEventListener('drop', (e) => {
                 e.preventDefault();
                 slot.classList.remove('ring-2', 'ring-blue-400');
                 const draggedId = e.dataTransfer?.getData('text/plain');
-                if (!draggedId) {
-                    return;
-                }
+                if (!draggedId) return;
 
                 const draggedSlide = document.getElementById(draggedId);
-                if (!draggedSlide) {
-                    return;
-                }
+                if (!draggedSlide) return;
 
                 const previousSlot = draggedSlide.parentElement;
                 if (previousSlot && previousSlot.classList.contains('drop-slot')) {
@@ -149,9 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showSlide = (index) => {
-        if (!slides.length || !slidesWrapper) {
-            return;
-        }
+        if (!slides.length || !slidesWrapper) return;
 
         const boundedIndex = Math.max(0, Math.min(index, slides.length - 1));
         currentIndex = boundedIndex;
@@ -161,9 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const buildSlides = () => {
-        if (!slidesWrapper) {
-            return;
-        }
+        if (!slidesWrapper) return;
 
         slidesWrapper.innerHTML = '';
         slides.length = 0;
@@ -258,14 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const correctCount = slots.reduce((count, slot, index) => {
-            return count + (slot.id === sortedIds[index] ? 1 : 0);
-        }, 0);
-
+        const correctCount = slots.reduce((count, slot, index) => count + (slot.id === sortedIds[index] ? 1 : 0), 0);
         const totalEvents = events.length;
         const isCorrect = correctCount === totalEvents;
-
-        submitScore(correctCount);
 
         const resultTitle = isCorrect ? 'Great job!' : 'Almost there';
         const resultHTML = isCorrect
@@ -277,27 +234,25 @@ document.addEventListener('DOMContentLoaded', () => {
         showMessage(resultTitle, resultHTML, resultClass);
     };
 
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            showSlide(currentIndex - 1);
-        });
-    }
-
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            showSlide(currentIndex + 1);
-        });
-    }
-
     const onFinishClick = () => {
-        if (!finishBtn) {
-            return;
-        }
+        if (!finishBtn) return;
 
         finishBtn.disabled = true;
         finishBtn.classList.add('opacity-50', 'cursor-not-allowed');
         checkOrder();
     };
+
+    window.navigateSlide = (direction) => {
+        showSlide(currentIndex + direction);
+    };
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => navigateSlide(-1));
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => navigateSlide(1));
+    }
 
     if (finishBtn) {
         finishBtn.addEventListener('click', onFinishClick);

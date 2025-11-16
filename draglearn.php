@@ -51,6 +51,27 @@ function draglearn_load_textdomain() {
 add_action( 'plugins_loaded', 'draglearn_load_textdomain' );
 
 /**
+ * Register frontend assets for the game.
+ */
+function ddg_register_assets() {
+    wp_register_script(
+        'ddg-game-script',
+        plugins_url( 'assets/js/new-game.js', __FILE__ ),
+        array( 'jquery' ),
+        '1.0',
+        true
+    );
+
+    wp_register_style(
+        'ddg-game-style',
+        plugins_url( 'assets/css/new-game.css', __FILE__ ),
+        array(),
+        '1.0'
+    );
+}
+add_action( 'wp_enqueue_scripts', 'ddg_register_assets' );
+
+/**
  * Add admin menu.
  */
 function draglearn_admin_menu() {
