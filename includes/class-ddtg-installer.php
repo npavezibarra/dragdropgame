@@ -57,23 +57,24 @@ class DDTG_Installer {
 
         $tables = "
 CREATE TABLE {$wpdb->prefix}ddg_games (
-  game_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  game_name VARCHAR(255) NOT NULL,
   description TEXT,
+  shortcode_slug VARCHAR(100) NOT NULL,
   num_items_to_show INT NOT NULL,
-  max_attempts INT,
-  attempts_period VARCHAR(20),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (game_id)
+  attempt_limit INT,
+  limit_period VARCHAR(20),
+  date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY shortcode_slug (shortcode_slug)
 ) $collate;
 
 CREATE TABLE {$wpdb->prefix}ddg_items (
   item_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   game_id BIGINT UNSIGNED NOT NULL,
   item_title VARCHAR(255) NOT NULL,
-  description TEXT,
   sort_value VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (item_id),
   KEY game_id (game_id)
 ) $collate;
