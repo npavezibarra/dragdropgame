@@ -25,7 +25,7 @@ class DDTG_Add_New {
         if ( $is_edit ) {
             global $wpdb;
             $games_table = $wpdb->prefix . 'ddg_games';
-            $game        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE id = %d", $game_id ) );
+            $game        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE game_id = %d", $game_id ) );
         }
 
         $current_game_name    = $game ? $game->game_name : '';
@@ -295,7 +295,7 @@ class DDTG_Add_New {
 
         $slug_conflict = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM {$games_table} WHERE shortcode_slug = %s AND id != %d",
+                "SELECT game_id FROM {$games_table} WHERE shortcode_slug = %s AND game_id != %d",
                 $game_data['shortcode_slug'],
                 $game_id
             )
@@ -339,7 +339,7 @@ class DDTG_Add_New {
         );
 
         if ( $is_edit ) {
-            $updated = $wpdb->update( $games_table, $game_record, array( 'id' => $game_id ) );
+            $updated = $wpdb->update( $games_table, $game_record, array( 'game_id' => $game_id ) );
 
             if ( false === $updated ) {
                 self::add_admin_error_notice( __( 'Unable to update the game. Please try again.', 'draglearndtg' ) );

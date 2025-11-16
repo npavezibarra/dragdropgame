@@ -56,28 +56,28 @@ class DDTG_Installer {
         }
 
         $tables = "
-CREATE TABLE {$wpdb->prefix}ddg_games (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id BIGINT UNSIGNED NOT NULL,
-  game_name VARCHAR(255) NOT NULL,
-  shortcode_slug VARCHAR(100) NOT NULL,
-  num_events_to_show INT NOT NULL DEFAULT 0,
-  date_created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY  (id),
-  UNIQUE KEY shortcode_slug (shortcode_slug),
-  KEY user_id (user_id)
-) $collate;
+  CREATE TABLE {$wpdb->prefix}ddg_games (
+    game_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    game_name VARCHAR(255) NOT NULL,
+    shortcode_slug VARCHAR(100) NOT NULL,
+    num_events_to_show INT NOT NULL DEFAULT 0,
+    date_created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY  (game_id),
+    UNIQUE KEY shortcode_slug (shortcode_slug),
+    KEY user_id (user_id)
+  ) $collate;
 
-CREATE TABLE {$wpdb->prefix}ddg_events (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  game_id BIGINT UNSIGNED NOT NULL,
-  event_name VARCHAR(255) NOT NULL,
-  description TEXT NULL,
-  event_date VARCHAR(50) NOT NULL,
-  image_url VARCHAR(255) DEFAULT NULL,
-  PRIMARY KEY  (id),
-  KEY game_id (game_id)
-) $collate;
+  CREATE TABLE {$wpdb->prefix}ddg_events (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    game_id BIGINT UNSIGNED NOT NULL,
+    event_name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    event_date VARCHAR(50) NOT NULL,
+    image_url VARCHAR(255) DEFAULT NULL,
+    PRIMARY KEY  (id),
+    KEY game_id (game_id)
+  ) $collate;
         ";
 
         return $tables;

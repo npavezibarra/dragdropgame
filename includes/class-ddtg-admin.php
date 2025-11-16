@@ -48,7 +48,7 @@ class DDTG_Admin {
 
         $game = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, game_name FROM {$games_table} WHERE id = %d AND user_id = %d",
+                "SELECT game_id, game_name FROM {$games_table} WHERE game_id = %d AND user_id = %d",
                 $game_id,
                 get_current_user_id()
             )
@@ -146,7 +146,7 @@ class DDTG_Admin {
 
         $game_exists = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT id FROM {$games_table} WHERE id = %d AND user_id = %d",
+                "SELECT game_id FROM {$games_table} WHERE game_id = %d AND user_id = %d",
                 $game_id,
                 get_current_user_id()
             )
@@ -158,7 +158,7 @@ class DDTG_Admin {
 
         $wpdb->delete( $attempts_table, [ 'game_id' => $game_id ] );
         $wpdb->delete( $events_table, [ 'game_id' => $game_id ] );
-        $wpdb->delete( $games_table, [ 'id' => $game_id ] );
+        $wpdb->delete( $games_table, [ 'game_id' => $game_id ] );
 
         wp_safe_redirect(
             add_query_arg(

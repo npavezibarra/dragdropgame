@@ -81,7 +81,7 @@ class DDTG_Shortcode {
             return '<p>' . esc_html__( 'No events found for this game.', 'draglearndtg' ) . '</p>';
         }
 
-        $attempt_id = self::create_new_attempt( $game->id, $user_id, count( $events ) );
+        $attempt_id = self::create_new_attempt( $game->game_id, $user_id, count( $events ) );
 
         self::enqueue_game_scripts( $attempt_id, $events );
 
@@ -114,7 +114,7 @@ class DDTG_Shortcode {
         $events = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT event_name, event_date, description, image_url FROM {$events_table} WHERE game_id = %d",
-                $game->id
+                $game->game_id
             )
         );
 
