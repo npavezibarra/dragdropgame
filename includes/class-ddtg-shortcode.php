@@ -136,6 +136,28 @@ class DDTG_Shortcode {
 
     private static function enqueue_game_scripts( $attempt_id, $events ) {
         wp_enqueue_script(
+            'ddtg-tailwind',
+            'https://cdn.tailwindcss.com',
+            array(),
+            null,
+            false
+        );
+
+        wp_add_inline_script(
+            'ddtg-tailwind',
+            'tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ["Inter", "sans-serif"],
+                }
+            }
+        }
+    };',
+            'before'
+        );
+
+        wp_enqueue_script(
             'ddtg-timeline-game',
             plugins_url( '../assets/js/timeline-game.js', __FILE__ ),
             array(),
