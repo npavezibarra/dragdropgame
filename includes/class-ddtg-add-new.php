@@ -46,15 +46,7 @@ class DDTG_Add_New {
                         </th>
                         <td>
                             <input type="text" id="ddtg_game_name" name="ddtg_game_name" class="regular-text" value="<?php echo esc_attr( $current_game_name ); ?>" required />
-                        </td>
-                    </tr>
-                    <tr valign="top">
-                        <th scope="row">
-                            <label for="ddtg_shortcode_slug"><?php esc_html_e( 'Shortcode Slug', 'draglearndtg' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="text" id="ddtg_shortcode_slug" name="ddtg_shortcode_slug" class="regular-text" value="<?php echo esc_attr( $current_slug ); ?>" required />
-                            <p class="description"><?php esc_html_e( 'This value is used with the [draglearn_game] shortcode (e.g. [draglearn_game game="my-slug"]).', 'draglearndtg' ); ?></p>
+                            <input type="hidden" id="ddtg_shortcode_slug" name="ddtg_shortcode_slug" value="<?php echo esc_attr( $current_slug ); ?>" />
                         </td>
                     </tr>
                     <tr valign="top">
@@ -85,6 +77,37 @@ class DDTG_Add_New {
                 <?php submit_button( $is_edit ? __( 'Update Game', 'draglearndtg' ) : __( 'Create Game', 'draglearndtg' ) ); ?>
             </form>
         </div>
+        <script>
+            (function() {
+                const nameInput = document.getElementById('ddtg_game_name');
+                const slugInput = document.getElementById('ddtg_shortcode_slug');
+
+                if (!nameInput || !slugInput) {
+                    return;
+                }
+
+                const slugify = (value) => {
+                    return value
+                        .toString()
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-+|-+$/g, '')
+                        .replace(/-{2,}/g, '-');
+                };
+
+                const updateSlug = () => {
+                    slugInput.value = slugify(nameInput.value);
+                };
+
+                if (!slugInput.value) {
+                    updateSlug();
+                }
+
+                nameInput.addEventListener('input', updateSlug);
+            })();
+        </script>
         <?php
     }
 
@@ -366,8 +389,13 @@ class DDTG_Add_New {
      * @return bool
      */
     private static function validate_game_submission( $game_data, $is_edit, $csv_file ) {
-        if ( empty( $game_data['game_name'] ) || empty( $game_data['shortcode_slug'] ) ) {
-            self::add_admin_error_notice( __( 'Error: Please fill in both the Game Name and Shortcode fields.', 'draglearndtg' ) );
+        if ( empty( $game_data['game_name'] ) ) {
+            self::add_admin_error_notice( __( 'Error: Please provide a Game Name so we can generate a shortcode.', 'draglearndtg' ) );
+            return false;
+        }
+
+        if ( empty( $game_data['shortcode_slug'] ) ) {
+            self::add_admin_error_notice( __( 'Error: Unable to generate a shortcode slug. Please adjust the Game Name.', 'draglearndtg' ) );
             return false;
         }
 
