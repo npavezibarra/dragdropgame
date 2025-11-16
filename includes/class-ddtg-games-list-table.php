@@ -65,11 +65,11 @@ class DDTG_Games_List_Table extends WP_List_Table {
                 $time = mysql2date( get_option( 'time_format' ), $item->date_created );
                 return esc_html( sprintf( '%1$s %2$s', $date, $time ) );
             case 'actions':
-                $edit_url    = admin_url( 'admin.php?page=ddtg-create-game&game_id=' . absint( $item->id ) );
-                $results_url = admin_url( 'admin.php?page=ddtg-game-results&game_id=' . absint( $item->id ) );
+                $edit_url    = admin_url( 'admin.php?page=ddtg-create-game&game_id=' . absint( $item->game_id ) );
+                $results_url = admin_url( 'admin.php?page=ddtg-game-results&game_id=' . absint( $item->game_id ) );
                 $delete_url  = wp_nonce_url(
-                    admin_url( 'admin-post.php?action=ddtg_delete_game&game_id=' . absint( $item->id ) ),
-                    'ddtg_delete_game_' . absint( $item->id )
+                    admin_url( 'admin-post.php?action=ddtg_delete_game&game_id=' . absint( $item->game_id ) ),
+                    'ddtg_delete_game_' . absint( $item->game_id )
                 );
 
                 $links = [
@@ -117,7 +117,7 @@ class DDTG_Games_List_Table extends WP_List_Table {
         );
 
         $query = $wpdb->prepare(
-            "SELECT id, game_name, shortcode_slug, num_events_to_show, date_created
+            "SELECT game_id, game_name, shortcode_slug, num_events_to_show, date_created
             FROM {$games_table}
             WHERE user_id = %d
             ORDER BY {$orderby} {$order}
