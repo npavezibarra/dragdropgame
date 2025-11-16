@@ -25,7 +25,7 @@ class DDTG_Add_New {
         if ( $is_edit ) {
             global $wpdb;
             $games_table = $wpdb->prefix . 'ddg_games';
-            $game        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE id = %d", $game_id ) );
+            $game        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE game_id = %d", $game_id ) );
         }
         ?>
         <div class="wrap">
@@ -41,7 +41,7 @@ class DDTG_Add_New {
                             <label for="ddtg_game_name"><?php esc_html_e( 'Game Name', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
-                            <input type="text" id="ddtg_game_name" name="ddtg_game_name" class="regular-text" value="<?php echo $is_edit ? esc_attr( $game->game_name ) : ''; ?>" required />
+                            <input type="text" id="ddtg_game_name" name="ddtg_game_name" class="regular-text" value="<?php echo $is_edit ? esc_attr( $game->name ) : ''; ?>" required />
                         </td>
                     </tr>
                     <tr valign="top">
@@ -65,7 +65,7 @@ class DDTG_Add_New {
                             <label for="ddtg_attempts_number"><?php esc_html_e( 'Attempts Number', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
-                            <input type="number" id="ddtg_attempts_number" name="ddtg_attempts_number" class="regular-text" value="<?php echo $is_edit ? esc_attr( $game->attempt_limit ) : ''; ?>" />
+                            <input type="number" id="ddtg_attempts_number" name="ddtg_attempts_number" class="regular-text" value="<?php echo $is_edit ? esc_attr( $game->max_attempts ) : ''; ?>" />
                         </td>
                     </tr>
                     <tr valign="top">
@@ -74,10 +74,10 @@ class DDTG_Add_New {
                         </th>
                         <td>
                             <select id="ddtg_attempts_period" name="ddtg_attempts_period">
-                                <option value="unlimited" <?php selected( $is_edit ? $game->limit_period : '', 'unlimited' ); ?>><?php esc_html_e( 'Unlimited', 'draglearndtg' ); ?></option>
-                                <option value="daily" <?php selected( $is_edit ? $game->limit_period : '', 'daily' ); ?>><?php esc_html_e( 'Daily', 'draglearndtg' ); ?></option>
-                                <option value="weekly" <?php selected( $is_edit ? $game->limit_period : '', 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'draglearndtg' ); ?></option>
-                                <option value="monthly" <?php selected( $is_edit ? $game->limit_period : '', 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'draglearndtg' ); ?></option>
+                                <option value="unlimited" <?php selected( $is_edit ? $game->attempts_period : '', 'unlimited' ); ?>><?php esc_html_e( 'Unlimited', 'draglearndtg' ); ?></option>
+                                <option value="daily" <?php selected( $is_edit ? $game->attempts_period : '', 'daily' ); ?>><?php esc_html_e( 'Daily', 'draglearndtg' ); ?></option>
+                                <option value="weekly" <?php selected( $is_edit ? $game->attempts_period : '', 'weekly' ); ?>><?php esc_html_e( 'Weekly', 'draglearndtg' ); ?></option>
+                                <option value="monthly" <?php selected( $is_edit ? $game->attempts_period : '', 'monthly' ); ?>><?php esc_html_e( 'Monthly', 'draglearndtg' ); ?></option>
                             </select>
                         </td>
                     </tr>
@@ -141,21 +141,17 @@ class DDTG_Add_New {
             return;
         }
 
-        $shortcode_slug = sanitize_title( $game_name );
-
         $game_data = array(
-            'user_id'           => get_current_user_id(),
-            'game_name'         => $game_name,
+            'name'              => $game_name,
             'description'       => $game_description,
-            'shortcode_slug'    => $shortcode_slug,
             'num_items_to_show' => $num_items_to_show,
-            'attempt_limit'     => $attempt_limit,
-            'limit_period'      => $limit_period,
+            'max_attempts'      => $max_attempts,
+            'attempts_period'   => $attempts_period,
         );
 
         if ( $is_edit ) {
             // Update the existing game
-            $wpdb->update( $games_table, $game_data, array( 'id' => $game_id ) );
+            $wpdb->update( $games_table, $game_data, array( 'game_id' => $game_id ) );
         } else {
             // Insert the new game into the database
             $wpdb->insert( $games_table, $game_data );
