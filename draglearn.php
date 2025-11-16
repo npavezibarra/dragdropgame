@@ -3,7 +3,7 @@
  * Plugin Name: DragLearn
  * Plugin URI: http://example.com/
  * Description: A basic WordPress plugin.
- * Version: 1.0
+ * Version: 1.5.0
  * Author: Nicolas Pavez
  * Author URI: http://example.com/
  * Text Domain: draglearndtg
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Define DRAGLEARN_VERSION.
  */
-define( 'DRAGLEARN_VERSION', '1.4' );
+define( 'DRAGLEARN_VERSION', '1.5.0' );
 
 /**
  * Include the installer class.
