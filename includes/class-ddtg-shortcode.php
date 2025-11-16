@@ -52,10 +52,6 @@ class DDTG_Shortcode {
 
         $user_id = get_current_user_id();
 
-        if ( ! self::can_user_attempt_game( $game, $user_id ) ) {
-            return '<p>' . esc_html__( 'You have reached the maximum number of attempts for this game.', 'draglearndtg' ) . '</p>';
-        }
-
         $events = self::get_events_for_game( $game );
 
         if ( empty( $events ) ) {
@@ -67,10 +63,6 @@ class DDTG_Shortcode {
         self::enqueue_game_scripts( $attempt_id );
 
         return self::render_game_html( $game, $attempt_id, $events );
-    }
-
-    private static function can_user_attempt_game( $game, $user_id ) {
-        return true;
     }
 
     private static function create_new_attempt( $game_id, $user_id, $total_events ) {

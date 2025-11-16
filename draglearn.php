@@ -108,6 +108,8 @@ include_once dirname( __FILE__ ) . '/includes/class-ddtg-add-new.php';
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-admin.php';
 
+add_action( 'admin_post_ddtg_delete_game', array( 'DDTG_Admin', 'handle_delete_game' ) );
+
 /**
  * AJAX hooks for score submission.
  */
