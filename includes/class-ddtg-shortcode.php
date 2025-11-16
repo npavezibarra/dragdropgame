@@ -47,94 +47,49 @@ class DDTG_Shortcode {
      * @return string
      */
     public static function render_game( $atts, $content = null, $tag = 'dragdropgame' ) {
-        $atts = shortcode_atts(
-            array(
-                'game' => '',
-            ),
-            $atts,
-            $tag
-        );
-
-        $shortcode_slug = sanitize_title( $atts['game'] );
-
-        if ( empty( $shortcode_slug ) ) {
-            return '<p>' . esc_html__( 'A valid game slug is required.', 'draglearndtg' ) . '</p>';
-        }
-
-        if ( ! is_user_logged_in() ) {
-            return '<p>' . esc_html__( 'You must be logged in to play this game.', 'draglearndtg' ) . '</p>';
+        $slug = isset( $atts['game'] ) ? sanitize_title( $atts['game'] ) : '';
+        if ( ! $slug ) {
+            return '<p>No game specified.</p>';
         }
 
         global $wpdb;
-        $games_table = $wpdb->prefix . 'ddg_games';
-        $game        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE shortcode_slug = %s", $shortcode_slug ) );
 
-        if ( ! $game ) {
-            return '<p>' . esc_html__( 'Game not found.', 'draglearndtg' ) . '</p>';
-        }
-
-        $user_id = get_current_user_id();
-
-        $events = self::get_events_for_game( $game );
-
-        if ( empty( $events ) ) {
-            return '<p>' . esc_html__( 'No events found for this game.', 'draglearndtg' ) . '</p>';
-        }
-
-        $attempt_id = self::create_new_attempt( $game->game_id, $user_id, count( $events ) );
-
-        self::enqueue_game_scripts( $attempt_id, $events );
-
-        return self::render_game_html( $game, $attempt_id );
-    }
-
-    private static function create_new_attempt( $game_id, $user_id, $total_events ) {
-        global $wpdb;
-        $attempts_table = $wpdb->prefix . 'ddg_attempts';
-
-        $wpdb->insert(
-            $attempts_table,
-            array(
-                'user_id'    => $user_id,
-                'game_id'    => $game_id,
-                'total'      => $total_events,
-                'start_time' => current_time( 'mysql', 1 ),
+        $game = $wpdb->get_row(
+            $wpdb->prepare(
+                "
+        SELECT *
+        FROM {$wpdb->prefix}ddg_games
+        WHERE shortcode_slug = %s
+        LIMIT 1
+    ",
+                $slug
             )
         );
 
-        return $wpdb->insert_id;
-    }
-
-    private static function get_events_for_game( $game ) {
-        global $wpdb;
+        if ( ! $game ) {
+            return '<p>Game not found.</p>';
+        }
 
         $events = $wpdb->get_results(
             $wpdb->prepare(
                 "
-                SELECT
-                    id,
-                    event_name AS name,
-                    description,
-                    event_date AS date,
-                    image_url AS image
-                FROM {$wpdb->prefix}ddg_events
-                WHERE game_id = %d
-                ",
+        SELECT 
+            id,
+            event_name AS name,
+            description,
+            event_date AS date,
+            image_url AS image
+        FROM {$wpdb->prefix}ddg_events
+        WHERE game_id = %d
+    ",
                 $game->game_id
             ),
             ARRAY_A
         );
 
-        if ( empty( $events ) ) {
-            return array();
-        }
-
         shuffle( $events );
+        $events = array_slice( $events, 0, intval( $game->num_events_to_show ) );
 
-        return array_slice( $events, 0, (int) $game->num_events_to_show );
-    }
-
-    private static function enqueue_game_scripts( $attempt_id, $events ) {
         wp_enqueue_script(
             'ddtg-tailwind',
             'https://cdn.tailwindcss.com',
@@ -150,11 +105,10 @@ class DDTG_Shortcode {
             extend: {
                 fontFamily: {
                     sans: ["Inter", "sans-serif"],
-                }
-            }
-        }
-    };',
-            'before'
+                },
+            },
+        },
+    };'
         );
 
         wp_enqueue_script(
@@ -167,12 +121,10 @@ class DDTG_Shortcode {
 
         wp_add_inline_script(
             'ddtg-timeline-game',
-            'const game_events = ' . wp_json_encode( $events ) . ';',
+            'const game_events = ' . json_encode( $events ) . ';',
             'before'
         );
-    }
 
-    private static function render_game_html( $game, $attempt_id ) {
         ob_start();
         include plugin_dir_path( __FILE__ ) . '../templates/frontend-timeline.php';
         return ob_get_clean();
