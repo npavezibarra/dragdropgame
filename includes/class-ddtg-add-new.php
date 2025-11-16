@@ -108,24 +108,17 @@ class DDTG_Add_New {
         $game_id = isset( $_POST['ddtg_game_id'] ) ? intval( $_POST['ddtg_game_id'] ) : 0;
         $is_edit = $game_id > 0;
 
-        $game_name        = isset( $_POST['ddtg_game_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_game_name'] ) ) : '';
-        $shortcode_slug   = isset( $_POST['ddtg_shortcode_slug'] ) ? sanitize_title( wp_unslash( $_POST['ddtg_shortcode_slug'] ) ) : '';
-        $num_events_to_show = isset( $_POST['ddtg_number_of_events'] ) ? absint( $_POST['ddtg_number_of_events'] ) : 0;
-        $csv_file         = isset( $_FILES['ddtg_csv_file'] ) ? $_FILES['ddtg_csv_file'] : null;
+        $game_data = self::get_submitted_game_data();
+        $csv_file  = isset( $_FILES['ddtg_csv_file'] ) ? $_FILES['ddtg_csv_file'] : null;
 
-        if ( empty( $shortcode_slug ) && ! empty( $game_name ) ) {
-            $shortcode_slug = sanitize_title( $game_name );
-        }
-
-        if ( ! $game_name || ! $shortcode_slug || ! $num_events_to_show || ( ! $is_edit && ( ! $csv_file || UPLOAD_ERR_OK !== $csv_file['error'] ) ) ) {
-            self::add_admin_error_notice( __( 'Error: Please fill in all required fields and upload a valid CSV file.', 'draglearndtg' ) );
+        if ( ! self::validate_game_submission( $game_data, $is_edit, $csv_file ) ) {
             return;
         }
 
         $slug_conflict = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM {$games_table} WHERE shortcode_slug = %s AND id != %d",
-                $shortcode_slug,
+                $game_data['shortcode_slug'],
                 $game_id
             )
         );
@@ -135,22 +128,24 @@ class DDTG_Add_New {
             return;
         }
 
-        $game_data = array(
-            'game_name'          => $game_name,
-            'shortcode_slug'     => $shortcode_slug,
-            'num_events_to_show' => $num_events_to_show,
+        $game_data['num_events_to_show'] = absint( $game_data['num_events_to_show'] );
+
+        $game_record = array(
+            'game_name'          => $game_data['game_name'],
+            'shortcode_slug'     => $game_data['shortcode_slug'],
+            'num_events_to_show' => $game_data['num_events_to_show'],
         );
 
         if ( $is_edit ) {
-            $updated = $wpdb->update( $games_table, $game_data, array( 'id' => $game_id ) );
+            $updated = $wpdb->update( $games_table, $game_record, array( 'id' => $game_id ) );
 
             if ( false === $updated ) {
                 self::add_admin_error_notice( __( 'Unable to update the game. Please try again.', 'draglearndtg' ) );
                 return;
             }
         } else {
-            $game_data['user_id'] = get_current_user_id();
-            $inserted             = $wpdb->insert( $games_table, $game_data );
+            $game_record['user_id'] = get_current_user_id();
+            $inserted               = $wpdb->insert( $games_table, $game_record );
 
             if ( ! $inserted ) {
                 self::add_admin_error_notice( __( 'Unable to create the game. Please try again.', 'draglearndtg' ) );
@@ -160,10 +155,13 @@ class DDTG_Add_New {
             $game_id = (int) $wpdb->insert_id;
         }
 
-        if ( $csv_file && UPLOAD_ERR_OK === $csv_file['error'] ) {
+        if ( self::is_valid_csv_payload( $csv_file ) ) {
             if ( ! self::import_events_from_csv( $events_table, $game_id, $csv_file ) ) {
                 return;
             }
+        } elseif ( ! $is_edit ) {
+            self::add_admin_error_notice( __( 'Error: Please upload a valid CSV file.', 'draglearndtg' ) );
+            return;
         }
 
         wp_safe_redirect( admin_url( 'admin.php?page=ddtg-my-games' ) );
@@ -182,7 +180,7 @@ class DDTG_Add_New {
     private static function import_events_from_csv( $events_table, $game_id, $csv_file ) {
         global $wpdb;
 
-        $handle = fopen( $csv_file['tmp_name'], 'r' );
+        $handle = fopen( $csv_file['tmp_name'], 'rb' );
         if ( false === $handle ) {
             self::add_admin_error_notice( __( 'Unable to read the uploaded CSV file.', 'draglearndtg' ) );
             return false;
@@ -265,5 +263,104 @@ class DDTG_Add_New {
                 <?php
             }
         );
+    }
+
+    /**
+     * Retrieve sanitized game data from the request.
+     *
+     * @return array
+     */
+    private static function get_submitted_game_data() {
+        $game_name        = isset( $_POST['ddtg_game_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ddtg_game_name'] ) ) : '';
+        $shortcode_slug   = isset( $_POST['ddtg_shortcode_slug'] ) ? sanitize_title( wp_unslash( $_POST['ddtg_shortcode_slug'] ) ) : '';
+        $num_events       = isset( $_POST['ddtg_number_of_events'] ) ? absint( $_POST['ddtg_number_of_events'] ) : 0;
+
+        if ( empty( $shortcode_slug ) && ! empty( $game_name ) ) {
+            $shortcode_slug = sanitize_title( $game_name );
+        }
+
+        return array(
+            'game_name'          => $game_name,
+            'shortcode_slug'     => $shortcode_slug,
+            'num_events_to_show' => $num_events,
+        );
+    }
+
+    /**
+     * Validate that the submitted form data is complete.
+     *
+     * @param array $game_data Sanitized game data.
+     * @param bool  $is_edit   Whether this is an edit operation.
+     * @param array $csv_file  Uploaded file data.
+     *
+     * @return bool
+     */
+    private static function validate_game_submission( $game_data, $is_edit, $csv_file ) {
+        if ( empty( $game_data['game_name'] ) || empty( $game_data['shortcode_slug'] ) ) {
+            self::add_admin_error_notice( __( 'Error: Please fill in both the Game Name and Shortcode fields.', 'draglearndtg' ) );
+            return false;
+        }
+
+        if ( empty( $game_data['num_events_to_show'] ) ) {
+            self::add_admin_error_notice( __( 'Error: Please provide how many events should be displayed per game.', 'draglearndtg' ) );
+            return false;
+        }
+
+        if ( ! $is_edit && ! self::is_valid_csv_payload( $csv_file ) ) {
+            self::add_admin_error_notice( __( 'Error: Please upload a CSV file before creating a new game.', 'draglearndtg' ) );
+            return false;
+        }
+
+        if ( self::has_file_to_process( $csv_file ) && ! self::passes_csv_file_checks( $csv_file ) ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Determine whether a CSV payload is available and valid.
+     *
+     * @param array|null $csv_file Uploaded file payload.
+     *
+     * @return bool
+     */
+    private static function is_valid_csv_payload( $csv_file ) {
+        return self::has_file_to_process( $csv_file ) && self::passes_csv_file_checks( $csv_file );
+    }
+
+    /**
+     * Check if the upload array contains a file that needs to be processed.
+     *
+     * @param array|null $csv_file Uploaded file payload.
+     *
+     * @return bool
+     */
+    private static function has_file_to_process( $csv_file ) {
+        return is_array( $csv_file ) && isset( $csv_file['error'], $csv_file['tmp_name'] ) && UPLOAD_ERR_OK === (int) $csv_file['error'] && ! empty( $csv_file['tmp_name'] );
+    }
+
+    /**
+     * Validate that the uploaded file is a CSV.
+     *
+     * @param array $csv_file Uploaded file payload.
+     *
+     * @return bool
+     */
+    private static function passes_csv_file_checks( $csv_file ) {
+        if ( ! self::has_file_to_process( $csv_file ) ) {
+            return false;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+
+        $checked_file = wp_check_filetype_and_ext( $csv_file['tmp_name'], $csv_file['name'], array( 'csv' => 'text/csv' ) );
+
+        if ( empty( $checked_file['ext'] ) || 'csv' !== $checked_file['ext'] ) {
+            self::add_admin_error_notice( __( 'Error: Only CSV files are supported.', 'draglearndtg' ) );
+            return false;
+        }
+
+        return true;
     }
 }
