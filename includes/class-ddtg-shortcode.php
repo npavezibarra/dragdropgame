@@ -107,15 +107,22 @@ class DDTG_Shortcode {
 
     private static function get_events_for_game( $game ) {
         global $wpdb;
-        $events_table = $wpdb->prefix . 'ddg_events';
-
-        $limit = max( 1, (int) $game->num_events_to_show );
 
         $events = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT event_name, event_date, description, image_url FROM {$events_table} WHERE game_id = %d",
+                "
+                SELECT
+                    id,
+                    event_name AS name,
+                    description,
+                    event_date AS date,
+                    image_url AS image
+                FROM {$wpdb->prefix}ddg_events
+                WHERE game_id = %d
+                ",
                 $game->game_id
-            )
+            ),
+            ARRAY_A
         );
 
         if ( empty( $events ) ) {
@@ -124,7 +131,7 @@ class DDTG_Shortcode {
 
         shuffle( $events );
 
-        return array_slice( $events, 0, $limit );
+        return array_slice( $events, 0, (int) $game->num_events_to_show );
     }
 
     private static function enqueue_game_scripts( $attempt_id, $events ) {
@@ -134,6 +141,12 @@ class DDTG_Shortcode {
             array(),
             DRAGLEARN_VERSION,
             true
+        );
+
+        wp_add_inline_script(
+            'ddtg-timeline-game',
+            'const game_events = ' . wp_json_encode( $events ) . ';',
+            'before'
         );
     }
 
