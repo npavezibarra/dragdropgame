@@ -35,11 +35,11 @@ class DDTG_Shortcode {
         $game_id = intval( $atts['id'] );
 
         if ( ! $game_id ) {
-            return '<p>' . esc_html__( 'Game ID is missing.', 'draglearn' ) . '</p>';
+            return '<p>' . esc_html__( 'Game ID is missing.', 'draglearndtg' ) . '</p>';
         }
 
         if ( ! is_user_logged_in() ) {
-            return '<p>' . esc_html__( 'You must be logged in to play this game.', 'draglearn' ) . '</p>';
+            return '<p>' . esc_html__( 'You must be logged in to play this game.', 'draglearndtg' ) . '</p>';
         }
         $user_id = get_current_user_id();
 
@@ -51,7 +51,7 @@ class DDTG_Shortcode {
         $game = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$games_table} WHERE game_id = %d", $game_id ) );
 
         if ( ! $game ) {
-            return '<p>' . esc_html__( 'Game not found.', 'draglearn' ) . '</p>';
+            return '<p>' . esc_html__( 'Game not found.', 'draglearndtg' ) . '</p>';
         }
 
         $user_id = get_current_user_id();
@@ -68,7 +68,7 @@ class DDTG_Shortcode {
             );
 
             if ( $user_attempts >= $max_attempts ) {
-                return '<p>' . esc_html__( 'You have reached the maximum number of attempts for this game.', 'draglearn' ) . '</p>';
+                return '<p>' . esc_html__( 'You have reached the maximum number of attempts for this game.', 'draglearndtg' ) . '</p>';
             }
         }
 
@@ -103,7 +103,7 @@ class DDTG_Shortcode {
         );
 
         if ( empty( $items ) ) {
-            return '<p>' . esc_html__( 'No items found for this game.', 'draglearn' ) . '</p>';
+            return '<p>' . esc_html__( 'No items found for this game.', 'draglearndtg' ) . '</p>';
         }
 
         $completions = array();
@@ -120,7 +120,7 @@ class DDTG_Shortcode {
             <p><?php echo esc_html( $game->description ); ?></p>
             <div class="drag-container">
                 <div id="lessons-pool">
-                    <h3><?php esc_html_e( 'Prompts', 'draglearn' ); ?></h3>
+                    <h3><?php esc_html_e( 'Prompts', 'draglearndtg' ); ?></h3>
                     <?php foreach ( $items as $item ) : ?>
                         <div class="draggable" draggable="true" data-course="<?php echo esc_attr( $item->sort_value ); ?>">
                             <?php echo esc_html( $item->item_title ); ?>
@@ -128,7 +128,7 @@ class DDTG_Shortcode {
                     <?php endforeach; ?>
                 </div>
                 <div id="courses-zones">
-                    <h3><?php esc_html_e( 'Completions', 'draglearn' ); ?></h3>
+                    <h3><?php esc_html_e( 'Completions', 'draglearndtg' ); ?></h3>
                     <?php foreach ( $completions as $completion ) : ?>
                         <div class="drop-zone" data-course-name="<?php echo esc_attr( $completion ); ?>">
                             <h4><?php echo esc_html( $completion ); ?></h4>

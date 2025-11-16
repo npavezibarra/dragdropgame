@@ -7,16 +7,16 @@ class DDTG_Games_List_Table extends WP_List_Table {
 
     public function __construct() {
         parent::__construct( [
-            'singular' => __( 'Game', 'draglearn' ),
-            'plural'   => __( 'Games', 'draglearn' ),
+            'singular' => __( 'Game', 'draglearndtg' ),
+            'plural'   => __( 'Games', 'draglearndtg' ),
             'ajax'     => false
         ] );
     }
 
     public function get_columns() {
         return [
-            'name'    => __( 'Game Name', 'draglearn' ),
-            'actions' => __( 'Actions', 'draglearn' ),
+            'name'    => __( 'Game Name', 'draglearndtg' ),
+            'actions' => __( 'Actions', 'draglearndtg' ),
         ];
     }
 
@@ -27,7 +27,7 @@ class DDTG_Games_List_Table extends WP_List_Table {
             case 'actions':
                 return sprintf( '<a href="%s">%s</a>',
                     esc_url( admin_url( 'admin.php?page=ddtg-game-results&game_id=' . $item->game_id ) ),
-                    __( 'Results', 'draglearn' )
+                    __( 'Results', 'draglearndtg' )
                 );
             default:
                 return print_r( $item, true );

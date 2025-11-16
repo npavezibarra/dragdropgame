@@ -23,13 +23,13 @@ class DDTG_Add_New {
         }
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Add New Game', 'draglearn' ); ?></h1>
+            <h1><?php esc_html_e( 'Add New Game', 'draglearndtg' ); ?></h1>
             <form method="post" enctype="multipart/form-data">
                 <?php wp_nonce_field( 'ddtg_add_new_action', 'ddtg_add_new_nonce' ); ?>
                 <table class="form-table">
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_game_name"><?php esc_html_e( 'Game Name', 'draglearn' ); ?></label>
+                            <label for="ddtg_game_name"><?php esc_html_e( 'Game Name', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
                             <input type="text" id="ddtg_game_name" name="ddtg_game_name" class="regular-text" required />
@@ -37,7 +37,7 @@ class DDTG_Add_New {
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_game_description"><?php esc_html_e( 'Game Description', 'draglearn' ); ?></label>
+                            <label for="ddtg_game_description"><?php esc_html_e( 'Game Description', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
                             <textarea id="ddtg_game_description" name="ddtg_game_description" class="large-text"></textarea>
@@ -45,7 +45,7 @@ class DDTG_Add_New {
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_number_of_slots"><?php esc_html_e( 'Number of Slots', 'draglearn' ); ?></label>
+                            <label for="ddtg_number_of_slots"><?php esc_html_e( 'Number of Slots', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
                             <input type="number" id="ddtg_number_of_slots" name="ddtg_number_of_slots" class="regular-text" required />
@@ -53,7 +53,7 @@ class DDTG_Add_New {
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_attempts_number"><?php esc_html_e( 'Attempts Number', 'draglearn' ); ?></label>
+                            <label for="ddtg_attempts_number"><?php esc_html_e( 'Attempts Number', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
                             <input type="number" id="ddtg_attempts_number" name="ddtg_attempts_number" class="regular-text" />
@@ -61,30 +61,30 @@ class DDTG_Add_New {
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_attempts_period"><?php esc_html_e( 'Attempts Period', 'draglearn' ); ?></label>
+                            <label for="ddtg_attempts_period"><?php esc_html_e( 'Attempts Period', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
                             <select id="ddtg_attempts_period" name="ddtg_attempts_period">
-                                <option value="unlimited"><?php esc_html_e( 'Unlimited', 'draglearn' ); ?></option>
-                                <option value="daily"><?php esc_html_e( 'Daily', 'draglearn' ); ?></option>
-                                <option value="weekly"><?php esc_html_e( 'Weekly', 'draglearn' ); ?></option>
-                                <option value="monthly"><?php esc_html_e( 'Monthly', 'draglearn' ); ?></option>
+                                <option value="unlimited"><?php esc_html_e( 'Unlimited', 'draglearndtg' ); ?></option>
+                                <option value="daily"><?php esc_html_e( 'Daily', 'draglearndtg' ); ?></option>
+                                <option value="weekly"><?php esc_html_e( 'Weekly', 'draglearndtg' ); ?></option>
+                                <option value="monthly"><?php esc_html_e( 'Monthly', 'draglearndtg' ); ?></option>
                             </select>
                         </td>
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_csv_file"><?php esc_html_e( 'CSV File', 'draglearn' ); ?></label>
+                            <label for="ddtg_csv_file"><?php esc_html_e( 'CSV File', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
                             <input type="file" id="ddtg_csv_file" name="ddtg_csv_file" accept=".csv" required />
                             <p class="description">
-                                <?php esc_html_e( 'Upload a CSV file with two columns: "item_title" and "sort_value".', 'draglearn' ); ?>
+                                <?php esc_html_e( 'Upload a CSV file with two columns: "item_title" and "sort_value".', 'draglearndtg' ); ?>
                             </p>
                         </td>
                     </tr>
                 </table>
-                <?php submit_button( __( 'Create Game', 'draglearn' ) ); ?>
+                <?php submit_button( __( 'Create Game', 'draglearndtg' ) ); ?>
             </form>
         </div>
         <?php
@@ -110,7 +110,7 @@ class DDTG_Add_New {
             add_action( 'admin_notices', function() {
                 ?>
                 <div class="notice notice-error is-dismissible">
-                    <p><?php esc_html_e( 'Error: Please fill in all required fields and upload a valid CSV file.', 'draglearn' ); ?></p>
+                    <p><?php esc_html_e( 'Error: Please fill in all required fields and upload a valid CSV file.', 'draglearndtg' ); ?></p>
                 </div>
                 <?php
             } );
