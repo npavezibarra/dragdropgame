@@ -4,7 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const wrapper = document.getElementById('ddg-game-wrapper');
     if (!wrapper) return;
 
-    const events = Array.isArray(window.game_events) ? window.game_events : [];
+    const events = (
+        window.ddgGameData &&
+        Array.isArray(window.ddgGameData.events)
+    ) ? window.ddgGameData.events : [];
 
     const dropZoneContainer = document.getElementById('drop-zone-items');
     const slidesWrapper = document.getElementById('slides-wrapper');
