@@ -22,9 +22,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const placements = {};
     const slides = [];
 
-    const parseDate = (dateString) => {
-        const parsed = Date.parse(dateString);
-        return Number.isNaN(parsed) ? null : parsed;
+    const parseDate = (value) => {
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        if (typeof value === 'number') {
+            return value;
+        }
+
+        const parsed = Date.parse(String(value));
+        if (!Number.isNaN(parsed)) {
+            return parsed;
+        }
+
+        const numeric = Number(value);
+        return Number.isNaN(numeric) ? null : numeric;
     };
 
     const closeModal = () => {
@@ -71,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const slot = document.createElement('div');
             slot.className = 'flex items-center justify-center bg-gray-100 border border-dashed border-gray-400 rounded-lg min-h-[60px] px-3 py-2 text-center shadow-inner drop-slot';
             slot.dataset.slotIndex = String(index);
-            slot.dataset.expectedDate = event.event_date || '';
+            slot.dataset.expectedDate = event.date ?? '';
             slot.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 slot.classList.add('ring-2', 'ring-blue-400');
@@ -137,22 +150,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         events.forEach((event, index) => {
             const slide = document.createElement('div');
-            slide.id = `timeline-slide-${index}`;
+            slide.id = `timeline-slide-${event.id ?? index}`;
             slide.className = 'absolute inset-0 flex flex-col items-center justify-center bg-white shadow-lg rounded-xl p-6 transition-transform duration-300 ease-in-out';
             slide.style.transform = `translateX(${index * 100}%)`;
             slide.setAttribute('draggable', 'true');
-            slide.dataset.eventDate = event.event_date || '';
+            slide.dataset.eventDate = event.date ?? '';
             slide.dataset.eventIndex = String(index);
 
             const title = document.createElement('h3');
             title.className = 'text-xl font-semibold text-gray-800 text-center mb-3';
-            title.textContent = event.event_name || `Event ${index + 1}`;
+            title.textContent = event.name || `Event ${index + 1}`;
             slide.appendChild(title);
 
-            if (event.image_url) {
+            if (event.image) {
                 const image = document.createElement('img');
-                image.src = event.image_url;
-                image.alt = event.event_name || '';
+                image.src = event.image;
+                image.alt = event.name || '';
                 image.className = 'max-h-48 w-auto rounded-lg shadow mb-3 object-contain';
                 slide.appendChild(image);
             }
@@ -166,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const dateHint = document.createElement('p');
             dateHint.className = 'text-sm text-gray-500 italic';
-            dateHint.textContent = event.event_date || '';
+            dateHint.textContent = event.date ?? '';
             slide.appendChild(dateHint);
 
             slide.addEventListener('dragstart', (e) => {
@@ -191,8 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const getSortedEventIds = () => {
         return events
             .map((event, index) => ({
-                id: `timeline-slide-${index}`,
-                date: parseDate(event.event_date || '') ?? Infinity,
+                id: `timeline-slide-${event.id ?? index}`,
+                date: parseDate(event.date ?? '') ?? Infinity,
             }))
             .sort((a, b) => a.date - b.date)
             .map((entry) => entry.id);

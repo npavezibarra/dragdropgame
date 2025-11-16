@@ -73,7 +73,7 @@ class DDTG_Shortcode {
         $events = $wpdb->get_results(
             $wpdb->prepare(
                 "
-        SELECT 
+        SELECT
             id,
             event_name AS name,
             description,
@@ -89,6 +89,18 @@ class DDTG_Shortcode {
 
         shuffle( $events );
         $events = array_slice( $events, 0, intval( $game->num_events_to_show ) );
+        $events = array_map(
+            static function ( $event ) {
+                return array(
+                    'id'          => isset( $event['id'] ) ? (int) $event['id'] : 0,
+                    'name'        => isset( $event['name'] ) ? (string) $event['name'] : '',
+                    'description' => isset( $event['description'] ) ? (string) $event['description'] : '',
+                    'date'        => isset( $event['date'] ) ? $event['date'] : '',
+                    'image'       => isset( $event['image'] ) ? (string) $event['image'] : '',
+                );
+            },
+            $events
+        );
 
         wp_enqueue_script(
             'ddtg-tailwind',
@@ -121,7 +133,7 @@ class DDTG_Shortcode {
 
         wp_add_inline_script(
             'ddtg-timeline-game',
-            'const game_events = ' . json_encode( $events ) . ';',
+            'const game_events = ' . json_encode( array_values( $events ) ) . ';',
             'before'
         );
 
