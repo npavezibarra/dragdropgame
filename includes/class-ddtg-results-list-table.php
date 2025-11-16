@@ -8,7 +8,7 @@ class DDTG_Results_List_Table extends WP_List_Table {
     private $game_id = 0;
 
     public function __construct( $game_id ) {
-        $this->game_id = $game_id;
+        $this->game_id = absint( $game_id );
 
         parent::__construct( [
             'singular' => __( 'Result', 'draglearndtg' ),
@@ -45,9 +45,16 @@ class DDTG_Results_List_Table extends WP_List_Table {
         $attempts_table = $wpdb->prefix . 'ddg_attempts';
         $users_table    = $wpdb->prefix . 'users';
 
+        if ( ! $this->game_id ) {
+            $this->items = [];
+            return;
+        }
+
         $sortable_columns = $this->get_sortable_columns();
-        $orderby          = isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], array_keys( $sortable_columns ), true ) ? sanitize_key( $_GET['orderby'] ) : 'user_login';
-        $order            = isset( $_GET['order'] ) && in_array( strtolower( $_GET['order'] ), [ 'asc', 'desc' ], true ) ? strtoupper( sanitize_key( $_GET['order'] ) ) : 'ASC';
+        $orderby_request  = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'user_login';
+        $orderby          = array_key_exists( $orderby_request, $sortable_columns ) ? $orderby_request : 'user_login';
+        $order_request    = isset( $_GET['order'] ) ? strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) : 'asc';
+        $order            = in_array( $order_request, [ 'asc', 'desc' ], true ) ? strtoupper( $order_request ) : 'ASC';
 
         $this->_column_headers = array( $this->get_columns(), array(), $this->get_sortable_columns() );
         $this->items           = $wpdb->get_results(
