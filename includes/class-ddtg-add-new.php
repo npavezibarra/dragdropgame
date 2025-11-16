@@ -62,13 +62,30 @@ class DDTG_Add_New {
                                     <em><?php esc_html_e( 'Upload a new CSV to replace the existing events.', 'draglearndtg' ); ?></em>
                                 <?php endif; ?>
                             </p>
+                            <div id="ddtg_csv_preview" style="display: none; margin-top: 1em;"></div>
                         </td>
                     </tr>
-                    <tr valign="top">
-                        <th scope="row">
-                            <label for="ddtg_number_of_events"><?php esc_html_e( 'Events to Display', 'draglearndtg' ); ?></label>
-                        </th>
+                    <tr id="ddtg_additional_fields" valign="top" style="display: none;">
+                        <th scope="row"><?php esc_html_e( 'Game Settings', 'draglearndtg' ); ?></th>
                         <td>
+                            <p class="description" style="margin-top: 0;">
+                                <?php esc_html_e( 'These options unlock after a successful CSV upload.', 'draglearndtg' ); ?>
+                            </p>
+                            <label for="ddtg_attempt_limit" style="display: block; margin-top: 0.5em;">
+                                <?php esc_html_e( 'Attempt Limit', 'draglearndtg' ); ?>
+                            </label>
+                            <input type="number" id="ddtg_attempt_limit" name="ddtg_attempt_limit" class="regular-text" min="0" step="1" />
+                            <p class="description"><?php esc_html_e( 'Maximum number of times a player can attempt this game (0 for unlimited).', 'draglearndtg' ); ?></p>
+
+                            <label for="ddtg_attempt_period" style="display: block; margin-top: 1em;">
+                                <?php esc_html_e( 'Attempt Period (days)', 'draglearndtg' ); ?>
+                            </label>
+                            <input type="number" id="ddtg_attempt_period" name="ddtg_attempt_period" class="regular-text" min="0" step="1" />
+                            <p class="description"><?php esc_html_e( 'How long the attempt limit applies before resetting (0 keeps all attempts).', 'draglearndtg' ); ?></p>
+
+                            <label for="ddtg_number_of_events" style="display: block; margin-top: 1em;">
+                                <?php esc_html_e( 'Events to Display', 'draglearndtg' ); ?>
+                            </label>
                             <input type="number" id="ddtg_number_of_events" name="ddtg_number_of_events" class="regular-text" min="1" value="<?php echo esc_attr( $current_events_limit ); ?>" required />
                             <p class="description"><?php esc_html_e( 'Controls how many events will be randomly selected per play session.', 'draglearndtg' ); ?></p>
                         </td>
@@ -81,6 +98,37 @@ class DDTG_Add_New {
             (function() {
                 const nameInput = document.getElementById('ddtg_game_name');
                 const slugInput = document.getElementById('ddtg_shortcode_slug');
+                const csvInput = document.getElementById('ddtg_csv_file');
+                const additionalFields = document.getElementById('ddtg_additional_fields');
+                const previewContainer = document.getElementById('ddtg_csv_preview');
+                const nonceField = document.getElementById('ddtg_add_new_nonce');
+                const attemptLimitInput = document.getElementById('ddtg_attempt_limit');
+                const attemptPeriodInput = document.getElementById('ddtg_attempt_period');
+                const eventsInput = document.getElementById('ddtg_number_of_events');
+
+                const setFieldAvailability = (enabled) => {
+                    [attemptLimitInput, attemptPeriodInput, eventsInput]
+                        .filter(Boolean)
+                        .forEach((input) => {
+                            input.disabled = !enabled;
+                            if (!enabled) {
+                                input.value = input.defaultValue;
+                            }
+                        });
+                };
+
+                const resetPreview = () => {
+                    if (previewContainer) {
+                        previewContainer.innerHTML = '';
+                        previewContainer.style.display = 'none';
+                    }
+
+                    if (additionalFields) {
+                        additionalFields.style.display = 'none';
+                    }
+
+                    setFieldAvailability(false);
+                };
 
                 if (!nameInput || !slugInput) {
                     return;
@@ -106,6 +154,62 @@ class DDTG_Add_New {
                 }
 
                 nameInput.addEventListener('input', updateSlug);
+                setFieldAvailability(false);
+
+                if (!csvInput || !previewContainer || !nonceField) {
+                    return;
+                }
+
+                const showPreview = (html) => {
+                    previewContainer.innerHTML = html;
+                    previewContainer.style.display = 'block';
+
+                    if (additionalFields) {
+                        additionalFields.style.display = '';
+                    }
+
+                    setFieldAvailability(true);
+                };
+
+                const renderError = (message) => {
+                    showPreview(`<div class="notice notice-error" style="padding: 10px;">${message}</div>`);
+                };
+
+                csvInput.addEventListener('change', () => {
+                    resetPreview();
+
+                    if (!csvInput.files || !csvInput.files.length) {
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('action', 'ddtg_preview_csv');
+                    formData.append('nonce', nonceField.value);
+                    formData.append('ddtg_csv_file', csvInput.files[0]);
+
+                    previewContainer.innerHTML = '<?php echo esc_js( __( 'Processing CSV preview...', 'draglearndtg' ) ); ?>';
+                    previewContainer.style.display = 'block';
+
+                    const ajaxUrl = typeof ajaxurl !== 'undefined' ? ajaxurl : (window.location.origin + '/wp-admin/admin-ajax.php');
+
+                    fetch(ajaxUrl, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'same-origin'
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (!data || !data.success) {
+                                renderError(data && data.data && data.data.message ? data.data.message : '<?php echo esc_js( __( 'Unable to process the CSV file.', 'draglearndtg' ) ); ?>');
+                                return;
+                            }
+
+                            showPreview(data.data.html);
+                        })
+                        .catch(() => {
+                            renderError('<?php echo esc_js( __( 'Unexpected error while previewing the CSV.', 'draglearndtg' ) ); ?>');
+                        });
+                });
             })();
         </script>
         <?php
@@ -189,6 +293,31 @@ class DDTG_Add_New {
 
         wp_safe_redirect( admin_url( 'admin.php?page=ddtg-my-games' ) );
         exit;
+    }
+
+    /**
+     * AJAX: Validate and preview the uploaded CSV before showing additional options.
+     */
+    public static function handle_csv_preview() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'You do not have permission to perform this action.', 'draglearndtg' ) ) );
+        }
+
+        check_ajax_referer( 'ddtg_add_new_action', 'nonce' );
+
+        $csv_file = isset( $_FILES['ddtg_csv_file'] ) ? $_FILES['ddtg_csv_file'] : null;
+
+        if ( ! self::is_valid_csv_payload( $csv_file ) ) {
+            wp_send_json_error( array( 'message' => __( 'Please upload a valid CSV file.', 'draglearndtg' ) ) );
+        }
+
+        $preview_html = self::build_csv_preview_table( $csv_file );
+
+        if ( is_wp_error( $preview_html ) ) {
+            wp_send_json_error( array( 'message' => $preview_html->get_error_message() ) );
+        }
+
+        wp_send_json_success( array( 'html' => $preview_html ) );
     }
 
     /**
@@ -338,6 +467,114 @@ class DDTG_Add_New {
         }
 
         return true;
+    }
+
+    /**
+     * Build a preview table from the uploaded CSV file without persisting the data.
+     *
+     * @param array $csv_file Uploaded CSV payload.
+     *
+     * @return string|WP_Error
+     */
+    private static function build_csv_preview_table( $csv_file ) {
+        $handle = fopen( $csv_file['tmp_name'], 'rb' );
+        if ( false === $handle ) {
+            return new WP_Error( 'ddtg_preview_unreadable', __( 'Unable to read the uploaded CSV file.', 'draglearndtg' ) );
+        }
+
+        $header_row = fgetcsv( $handle );
+        if ( empty( $header_row ) ) {
+            fclose( $handle );
+            return new WP_Error( 'ddtg_preview_header', __( 'The CSV file must include a header row.', 'draglearndtg' ) );
+        }
+
+        if ( count( $header_row ) < 3 ) {
+            fclose( $handle );
+            return new WP_Error( 'ddtg_preview_columns', __( 'CSV files must include at least three columns.', 'draglearndtg' ) );
+        }
+
+        if ( ! self::is_valid_encoding( $header_row ) ) {
+            fclose( $handle );
+            return new WP_Error( 'ddtg_preview_encoding', __( 'Unable to read the CSV header because of an encoding issue.', 'draglearndtg' ) );
+        }
+
+        $header_row        = array_map( 'sanitize_key', $header_row );
+        $available_columns = array_flip( $header_row );
+        $required_columns  = array( 'event_name', 'description', 'event_date' );
+        $missing_columns   = array_diff( $required_columns, array_keys( $available_columns ) );
+
+        if ( ! empty( $missing_columns ) ) {
+            fclose( $handle );
+            return new WP_Error( 'ddtg_preview_missing', sprintf( __( 'Missing required CSV columns: %s', 'draglearndtg' ), implode( ', ', $missing_columns ) ) );
+        }
+
+        $rows       = array();
+        $line_count = 0;
+
+        while ( $line_count < 5 ) {
+            $row = fgetcsv( $handle );
+            if ( false === $row ) {
+                break;
+            }
+
+            if ( ! self::is_valid_encoding( $row ) ) {
+                fclose( $handle );
+                return new WP_Error( 'ddtg_preview_row_encoding', __( 'Unable to read one of the CSV rows because of encoding.', 'draglearndtg' ) );
+            }
+
+            $event_name = self::sanitize_csv_value( $row[ $available_columns['event_name'] ], 'text' );
+            $description = self::sanitize_csv_value( $row[ $available_columns['description'] ], 'textarea' );
+            $event_date = self::sanitize_csv_value( $row[ $available_columns['event_date'] ], 'text' );
+
+            if ( is_wp_error( $event_name ) || is_wp_error( $description ) || is_wp_error( $event_date ) ) {
+                fclose( $handle );
+                return new WP_Error( 'ddtg_preview_markup', __( 'CSV rows cannot include HTML tags or scripts.', 'draglearndtg' ) );
+            }
+
+            if ( '' === $event_name || '' === $description || '' === $event_date ) {
+                fclose( $handle );
+                return new WP_Error( 'ddtg_preview_missing_data', __( 'Some rows are missing required data.', 'draglearndtg' ) );
+            }
+
+            $rows[] = array(
+                'event_name'  => $event_name,
+                'description' => $description,
+                'event_date'  => $event_date,
+            );
+
+            $line_count++;
+        }
+
+        fclose( $handle );
+
+        if ( empty( $rows ) ) {
+            return new WP_Error( 'ddtg_preview_empty', __( 'No data rows were found in the CSV file.', 'draglearndtg' ) );
+        }
+
+        ob_start();
+        ?>
+        <h3><?php esc_html_e( 'CSV Preview', 'draglearndtg' ); ?></h3>
+        <table class="widefat striped" style="max-width: 720px;">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Event Name', 'draglearndtg' ); ?></th>
+                    <th><?php esc_html_e( 'Description', 'draglearndtg' ); ?></th>
+                    <th><?php esc_html_e( 'Event Date', 'draglearndtg' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $rows as $row ) : ?>
+                    <tr>
+                        <td><?php echo esc_html( $row['event_name'] ); ?></td>
+                        <td><?php echo esc_html( $row['description'] ); ?></td>
+                        <td><?php echo esc_html( $row['event_date'] ); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
+
+        return ob_get_clean();
     }
 
     /**
@@ -497,7 +734,7 @@ class DDTG_Add_New {
      *
      * @return string|WP_Error
      */
-    private static function sanitize_csv_value( $value, $context = 'text' ) {
+private static function sanitize_csv_value( $value, $context = 'text' ) {
         $value = trim( (string) $value );
 
         if ( '' === $value ) {
@@ -519,3 +756,5 @@ class DDTG_Add_New {
         }
     }
 }
+
+add_action( 'wp_ajax_ddtg_preview_csv', array( 'DDTG_Add_New', 'handle_csv_preview' ) );
