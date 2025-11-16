@@ -1,5 +1,21 @@
 // game_events will be injected by PHP using wp_add_inline_script()
 
+function submitScore(score) {
+    const wrapper = document.getElementById('ddtg-timeline-game-wrapper');
+    if (!wrapper) return;
+
+    const attemptId = wrapper.dataset.attemptId;
+
+    fetch(ddtg_ajax.ajax_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `action=ddtg_save_score&attempt_id=${attemptId}&score=${score}`,
+    })
+        .then((res) => res.text())
+        .then(console.log)
+        .catch(console.error);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const wrapper = document.getElementById('ddtg-timeline-game-wrapper');
 
@@ -60,20 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modal) {
             modal.classList.remove('hidden');
         }
-    };
-
-    const submitScore = (score) => {
-        const attemptId = wrapper.dataset.attemptId;
-
-        if (!attemptId || !window.ddtg_ajax?.ajax_url) {
-            return;
-        }
-
-        fetch(window.ddtg_ajax.ajax_url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=ddtg_save_score&attempt_id=${encodeURIComponent(attemptId)}&score=${encodeURIComponent(score)}`,
-        });
     };
 
     const buildDropZones = () => {
@@ -225,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .map((entry) => entry.id);
     };
 
-    const evaluateOrder = () => {
+    const checkOrder = () => {
         const sortedIds = getSortedEventIds();
         const slots = Object.keys(placements)
             .map((key) => ({ slot: Number(key), id: placements[key] }))
@@ -240,13 +242,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return count + (slot.id === sortedIds[index] ? 1 : 0);
         }, 0);
 
-        if (correctCount === events.length) {
+        const totalEvents = events.length;
+        const isCorrect = correctCount === totalEvents;
+
+        submitScore(correctCount);
+
+        if (isCorrect) {
             showModal('Great job!', 'You ordered all events correctly.');
         } else {
             showModal('Almost there', 'The order is not quite right yet. Try again!');
         }
-
-        submitScore(correctCount);
     };
 
     if (prevBtn) {
@@ -262,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (finishBtn) {
-        finishBtn.addEventListener('click', evaluateOrder);
+        finishBtn.addEventListener('click', checkOrder);
     }
 
     buildDropZones();
