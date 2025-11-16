@@ -18,7 +18,26 @@ class DDTG_Shortcode {
      * Initialize the shortcode.
      */
     public static function init() {
-        add_shortcode( 'draglearn_game', array( __CLASS__, 'render_game' ) );
+        add_shortcode( 'dragdropgame', array( __CLASS__, 'render_game' ) );
+        add_shortcode( 'draglearn_game', array( __CLASS__, 'render_legacy_game' ) );
+    }
+
+    /**
+     * Legacy shortcode handler for backward compatibility.
+     *
+     * @param array  $atts    Shortcode attributes.
+     * @param string $content Shortcode content.
+     * @param string $tag     Shortcode tag.
+     * @return string
+     */
+    public static function render_legacy_game( $atts, $content = null, $tag = 'draglearn_game' ) {
+        _doing_it_wrong(
+            'draglearn_game',
+            esc_html__( 'The [draglearn_game] shortcode is deprecated. Please use [dragdropgame] instead.', 'draglearndtg' ),
+            '1.6.0'
+        );
+
+        return self::render_game( $atts, $content, $tag );
     }
 
     /**
@@ -27,15 +46,19 @@ class DDTG_Shortcode {
      * @param array $atts Shortcode attributes.
      * @return string
      */
-    public static function render_game( $atts ) {
-        $atts = shortcode_atts( array(
-            'game' => '',
-        ), $atts, 'draglearn_game' );
+    public static function render_game( $atts, $content = null, $tag = 'dragdropgame' ) {
+        $atts = shortcode_atts(
+            array(
+                'game' => '',
+            ),
+            $atts,
+            $tag
+        );
 
-        $shortcode_slug = sanitize_text_field( $atts['game'] );
+        $shortcode_slug = sanitize_title( $atts['game'] );
 
         if ( empty( $shortcode_slug ) ) {
-            return '<p>' . esc_html__( 'Game slug is missing.', 'draglearndtg' ) . '</p>';
+            return '<p>' . esc_html__( 'A valid game slug is required.', 'draglearndtg' ) . '</p>';
         }
 
         if ( ! is_user_logged_in() ) {
@@ -60,9 +83,9 @@ class DDTG_Shortcode {
 
         $attempt_id = self::create_new_attempt( $game->id, $user_id, count( $events ) );
 
-        self::enqueue_game_scripts( $attempt_id );
+        self::enqueue_game_scripts( $attempt_id, $events );
 
-        return self::render_game_html( $game, $attempt_id, $events );
+        return self::render_game_html( $game, $attempt_id );
     }
 
     private static function create_new_attempt( $game_id, $user_id, $total_events ) {
@@ -88,18 +111,38 @@ class DDTG_Shortcode {
 
         $limit = max( 1, (int) $game->num_events_to_show );
 
-        return $wpdb->get_results(
+        $events = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT event_name, event_date, description, image_url FROM {$events_table} WHERE game_id = %d ORDER BY RAND() LIMIT %d",
-                $game->id,
-                $limit
+                "SELECT event_name, event_date, description, image_url FROM {$events_table} WHERE game_id = %d",
+                $game->id
             )
         );
+
+        if ( empty( $events ) ) {
+            return array();
+        }
+
+        shuffle( $events );
+
+        return array_slice( $events, 0, $limit );
     }
 
-    private static function enqueue_game_scripts( $attempt_id ) {
+    private static function enqueue_game_scripts( $attempt_id, $events ) {
         wp_enqueue_style( 'draglearn-game-style', plugins_url( '../assets/css/draglearn-game.css', __FILE__ ) );
         wp_enqueue_script( 'draglearn-game-script', plugins_url( '../assets/js/draglearn-game.js', __FILE__ ), array( 'jquery' ), DRAGLEARN_VERSION, true );
+
+        $localized_events = array_map(
+            static function ( $event ) {
+                return array(
+                    'event_name'  => sanitize_text_field( $event->event_name ),
+                    'event_date'  => sanitize_text_field( $event->event_date ),
+                    'description' => sanitize_textarea_field( $event->description ),
+                    'image_url'   => esc_url_raw( $event->image_url ),
+                );
+            },
+            $events
+        );
+
         wp_localize_script(
             'draglearn-game-script',
             'ddtg_game_data',
@@ -109,13 +152,15 @@ class DDTG_Shortcode {
                 'attempt_id' => $attempt_id,
             )
         );
+
+        wp_add_inline_script(
+            'draglearn-game-script',
+            'window.dragdropgame_events = ' . wp_json_encode( $localized_events ) . ';',
+            'before'
+        );
     }
 
-    private static function render_game_html( $game, $attempt_id, $events ) {
-        $completions = wp_list_pluck( $events, 'event_date' );
-        shuffle( $completions );
-        shuffle( $events );
-
+    private static function render_game_html( $game, $attempt_id ) {
         ob_start();
         ?>
         <div id="draglearn-game" data-attempt-id="<?php echo esc_attr( $attempt_id ); ?>">
@@ -124,25 +169,11 @@ class DDTG_Shortcode {
             <div class="drag-container">
                 <div id="lessons-pool">
                     <h3><?php esc_html_e( 'Events', 'draglearndtg' ); ?></h3>
-                    <?php foreach ( $events as $event ) : ?>
-                        <div class="draggable" draggable="true" data-course="<?php echo esc_attr( $event->event_date ); ?>">
-                            <strong><?php echo esc_html( $event->event_name ); ?></strong>
-                            <?php if ( ! empty( $event->description ) ) : ?>
-                                <p class="event-description"><?php echo esc_html( $event->description ); ?></p>
-                            <?php endif; ?>
-                            <?php if ( ! empty( $event->image_url ) ) : ?>
-                                <img src="<?php echo esc_url( $event->image_url ); ?>" alt="<?php echo esc_attr( $event->event_name ); ?>" />
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
+                    <div id="ddtg-events"></div>
                 </div>
                 <div id="courses-zones">
                     <h3><?php esc_html_e( 'Dates', 'draglearndtg' ); ?></h3>
-                    <?php foreach ( $completions as $completion ) : ?>
-                        <div class="drop-zone" data-course-name="<?php echo esc_attr( $completion ); ?>">
-                            <h4><?php echo esc_html( $completion ); ?></h4>
-                        </div>
-                    <?php endforeach; ?>
+                    <div id="ddtg-dates"></div>
                 </div>
             </div>
             <button id="finish-game"><?php esc_html_e( 'Finish', 'draglearndtg' ); ?></button>
