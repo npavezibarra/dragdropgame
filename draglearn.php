@@ -108,6 +108,11 @@ include_once dirname( __FILE__ ) . '/includes/class-ddtg-add-new.php';
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-admin.php';
 
+/**
+ * Include attempt handling.
+ */
+include_once dirname( __FILE__ ) . '/includes/class-ddtg-attempts.php';
+
 add_action( 'admin_post_ddtg_delete_game', array( 'DDTG_Admin', 'handle_delete_game' ) );
 
 /**
