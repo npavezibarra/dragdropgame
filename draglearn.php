@@ -54,13 +54,17 @@ add_action( 'plugins_loaded', 'draglearn_load_textdomain' );
  * Register frontend assets for the game.
  */
 function ddg_register_assets() {
+    error_log( 'DDG_ASSETS: Registering/Loading game script...' );
+
     wp_register_script(
         'ddg-game-script',
-        plugins_url( 'assets/js/new-game.js', __FILE__ ),
-        array( 'jquery' ),
+        plugins_url( '/assets/js/ddg-game.js', __FILE__ ),
+        array(),
         '1.0',
         true
     );
+
+    error_log( 'DDG_ASSETS: Script path = ' . plugins_url( '/assets/js/ddg-game.js', __FILE__ ) );
 
     wp_register_style(
         'ddg-game-style',
