@@ -6,6 +6,8 @@
  * Version: 1.0
  * Author: Nicolas Pavez
  * Author URI: http://example.com/
+ * Text Domain: draglearndtg
+ * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Define DRAGLEARN_VERSION.
  */
-define( 'DRAGLEARN_VERSION', '1.4' );
+define( 'DRAGLEARN_VERSION', '1.3' );
 
 /**
  * Include the installer class.
@@ -41,12 +43,20 @@ function draglearn_update_check() {
 add_action( 'plugins_loaded', 'draglearn_update_check' );
 
 /**
+ * Load plugin textdomain.
+ */
+function draglearn_load_textdomain() {
+    load_plugin_textdomain( 'draglearndtg', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+}
+add_action( 'plugins_loaded', 'draglearn_load_textdomain' );
+
+/**
  * Add admin menu.
  */
 function draglearn_admin_menu() {
     add_menu_page(
-        __( 'DragLearn', 'draglearn' ),
-        __( 'DragLearn', 'draglearn' ),
+        __( 'DragLearn', 'draglearndtg' ),
+        __( 'DragLearn', 'draglearndtg' ),
         'manage_options',
         'ddtg-my-games',
         array( 'DDTG_Admin', 'my_games_page_content' ),
@@ -55,8 +65,8 @@ function draglearn_admin_menu() {
 
     add_submenu_page(
         'ddtg-my-games',
-        __( 'My Games', 'draglearn' ),
-        __( 'My Games', 'draglearn' ),
+        __( 'My Games', 'draglearndtg' ),
+        __( 'My Games', 'draglearndtg' ),
         'manage_options',
         'ddtg-my-games',
         array( 'DDTG_Admin', 'my_games_page_content' )
@@ -64,8 +74,8 @@ function draglearn_admin_menu() {
 
     add_submenu_page(
         'ddtg-my-games',
-        __( 'Add New', 'draglearn' ),
-        __( 'Add New', 'draglearn' ),
+        __( 'Add New', 'draglearndtg' ),
+        __( 'Add New', 'draglearndtg' ),
         'manage_options',
         'ddtg-create-game',
         array( 'DDTG_Admin', 'add_new_page_content' )
@@ -73,8 +83,8 @@ function draglearn_admin_menu() {
 
     add_submenu_page(
         'ddtg-my-games',
-        __( 'Game Results', 'draglearn' ),
-        __( 'Game Results', 'draglearn' ),
+        __( 'Game Results', 'draglearndtg' ),
+        __( 'Game Results', 'draglearndtg' ),
         'manage_options',
         'ddtg-game-results',
         array( 'DDTG_Admin', 'results_page_content' )

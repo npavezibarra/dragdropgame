@@ -11,19 +11,19 @@ class DDTG_Results_List_Table extends WP_List_Table {
         $this->game_id = $game_id;
 
         parent::__construct( [
-            'singular' => __( 'Result', 'draglearn' ),
-            'plural'   => __( 'Results', 'draglearn' ),
+            'singular' => __( 'Result', 'draglearndtg' ),
+            'plural'   => __( 'Results', 'draglearndtg' ),
             'ajax'     => false
         ] );
     }
 
     public function get_columns() {
         return [
-            'user_login'  => __( 'Student Name', 'draglearn' ),
-            'score'       => __( 'Score', 'draglearn' ),
-            'total'       => __( 'Total', 'draglearn' ),
-            'start_time'  => __( 'Start Time', 'draglearn' ),
-            'finish_time' => __( 'Finish Time', 'draglearn' ),
+            'user_login'  => __( 'Student Name', 'draglearndtg' ),
+            'score'       => __( 'Score', 'draglearndtg' ),
+            'total'       => __( 'Total', 'draglearndtg' ),
+            'start_time'  => __( 'Start Time', 'draglearndtg' ),
+            'finish_time' => __( 'Finish Time', 'draglearndtg' ),
         ];
     }
 

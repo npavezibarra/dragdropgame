@@ -23,9 +23,9 @@ class DDTG_Admin {
         ?>
         <div class="wrap">
             <h1>
-                <?php esc_html_e( 'My Games', 'draglearn' ); ?>
+                <?php esc_html_e( 'My Games', 'draglearndtg' ); ?>
                 <a href="<?php echo admin_url( 'admin.php?page=ddtg-create-game' ); ?>" class="page-title-action">
-                    <?php esc_html_e( 'Add New', 'draglearn' ); ?>
+                    <?php esc_html_e( 'Add New', 'draglearndtg' ); ?>
                 </a>
             </h1>
             <?php $games_list_table->display(); ?>
@@ -42,20 +42,20 @@ class DDTG_Admin {
         $game_id     = isset( $_GET['game_id'] ) ? intval( $_GET['game_id'] ) : 0;
 
         if ( ! $game_id ) {
-            wp_die( esc_html__( 'Invalid game ID.', 'draglearn' ) );
+            wp_die( esc_html__( 'Invalid game ID.', 'draglearndtg' ) );
         }
 
         $game = $wpdb->get_row( $wpdb->prepare( "SELECT name FROM {$games_table} WHERE game_id = %d", $game_id ) );
 
         if ( ! $game ) {
-            wp_die( esc_html__( 'Game not found.', 'draglearn' ) );
+            wp_die( esc_html__( 'Game not found.', 'draglearndtg' ) );
         }
 
         $results_list_table = new DDTG_Results_List_Table( $game_id );
         $results_list_table->prepare_items();
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html( sprintf( __( 'Results for %s', 'draglearn' ), $game->name ) ); ?></h1>
+            <h1><?php echo esc_html( sprintf( __( 'Results for %s', 'draglearndtg' ), $game->name ) ); ?></h1>
             <?php $results_list_table->display(); ?>
         </div>
         <?php
@@ -82,7 +82,7 @@ class DDTG_Admin {
         $score      = isset( $_POST['score'] ) ? intval( $_POST['score'] ) : 0;
 
         if ( ! $attempt_id || ! get_current_user_id() ) {
-            wp_send_json_error( [ 'message' => 'Invalid attempt or user.' ] );
+            wp_send_json_error( [ 'message' => __( 'Invalid attempt or user.', 'draglearndtg' ) ] );
             return;
         }
 
@@ -90,7 +90,7 @@ class DDTG_Admin {
         $attempt = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$attempts_table} WHERE attempt_id = %d AND user_id = %d", $attempt_id, get_current_user_id() ) );
 
         if ( ! $attempt ) {
-            wp_send_json_error( [ 'message' => 'Attempt not found or permission denied.' ] );
+            wp_send_json_error( [ 'message' => __( 'Attempt not found or permission denied.', 'draglearndtg' ) ] );
             return;
         }
 
@@ -106,6 +106,6 @@ class DDTG_Admin {
             ]
         );
 
-        wp_send_json_success( [ 'message' => 'Score saved successfully.' ] );
+        wp_send_json_success( [ 'message' => __( 'Score saved successfully.', 'draglearndtg' ) ] );
     }
 }
