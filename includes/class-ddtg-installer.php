@@ -60,36 +60,23 @@ CREATE TABLE {$wpdb->prefix}ddg_games (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
   game_name VARCHAR(255) NOT NULL,
-  description TEXT,
   shortcode_slug VARCHAR(100) NOT NULL,
-  num_items_to_show INT NOT NULL,
-  attempt_limit INT,
-  limit_period VARCHAR(20),
-  date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY shortcode_slug (shortcode_slug)
-) $collate;
-
-CREATE TABLE {$wpdb->prefix}ddg_items (
-  item_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  game_id BIGINT UNSIGNED NOT NULL,
-  item_title VARCHAR(255) NOT NULL,
-  sort_value VARCHAR(255) NOT NULL,
-  PRIMARY KEY (item_id),
-  KEY game_id (game_id)
-) $collate;
-
-CREATE TABLE {$wpdb->prefix}ddg_attempts (
-  attempt_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  game_id BIGINT UNSIGNED NOT NULL,
-  user_id BIGINT UNSIGNED NOT NULL,
-  start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  finish_time TIMESTAMP NULL,
-  score INT,
-  total INT,
-  PRIMARY KEY (attempt_id),
-  KEY game_id (game_id),
+  num_events_to_show INT NOT NULL DEFAULT 0,
+  date_created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY  (id),
+  UNIQUE KEY shortcode_slug (shortcode_slug),
   KEY user_id (user_id)
+) $collate;
+
+CREATE TABLE {$wpdb->prefix}ddg_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  game_id BIGINT UNSIGNED NOT NULL,
+  event_name VARCHAR(255) NOT NULL,
+  description TEXT NULL,
+  event_date VARCHAR(50) NOT NULL,
+  image_url VARCHAR(255) DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY game_id (game_id)
 ) $collate;
         ";
 

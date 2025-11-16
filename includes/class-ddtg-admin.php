@@ -55,7 +55,7 @@ class DDTG_Admin {
         $results_list_table->prepare_items();
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html( sprintf( __( 'Results for %s', 'draglearndtg' ), $game->name ) ); ?></h1>
+            <h1><?php echo esc_html( sprintf( __( 'Results for %s', 'draglearndtg' ), $game->game_name ) ); ?></h1>
             <?php $results_list_table->display(); ?>
         </div>
         <?php
