@@ -1,4 +1,7 @@
-<div id="ddtg-timeline-game-wrapper" class="ddtg-timeline-wrapper">
+<div id="ddtg-timeline-game-wrapper"
+    data-attempt-id="<?php echo isset( $attempt_id ) ? intval( $attempt_id ) : 0; ?>"
+    data-game-id="<?php echo isset( $game->game_id ) ? intval( $game->game_id ) : 0; ?>"
+    class="ddtg-timeline-wrapper">
 
     <!-- HEADER WITH DROP ZONES -->
     <header id="top-bar-drop-zone" class="h-[100px] flex items-center justify-center p-3 bg-white shadow-xl z-30">

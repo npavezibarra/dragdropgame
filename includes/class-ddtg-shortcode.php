@@ -70,6 +70,17 @@ class DDTG_Shortcode {
             return '<p>Game not found.</p>';
         }
 
+        $can_play = DDTG_Attempts::can_play( $game->game_id, get_current_user_id() );
+
+        if ( ! $can_play['allowed'] ) {
+            return '<div class="ddtg-no-attempts">'
+                . '<h2>Attempt Limit Reached</h2>'
+                . '<p>' . esc_html( $can_play['message'] ) . '</p>'
+                . '</div>';
+        }
+
+        $attempt_id = DDTG_Attempts::record_attempt( $game->game_id, get_current_user_id() );
+
         $events = $wpdb->get_results(
             $wpdb->prepare(
                 "
@@ -129,6 +140,14 @@ class DDTG_Shortcode {
             array(),
             DRAGLEARN_VERSION,
             true
+        );
+
+        wp_localize_script(
+            'ddtg-timeline-game',
+            'ddtg_ajax',
+            array(
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+            )
         );
 
         wp_add_inline_script(

@@ -62,6 +62,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const submitScore = (score) => {
+        const attemptId = wrapper.dataset.attemptId;
+
+        if (!attemptId || !window.ddtg_ajax?.ajax_url) {
+            return;
+        }
+
+        fetch(window.ddtg_ajax.ajax_url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=ddtg_save_score&attempt_id=${encodeURIComponent(attemptId)}&score=${encodeURIComponent(score)}`,
+        });
+    };
+
     const buildDropZones = () => {
         if (!dropZoneContainer) {
             return;
@@ -222,13 +236,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const isCorrect = slots.every((slot, index) => slot.id === sortedIds[index]);
+        const correctCount = slots.reduce((count, slot, index) => {
+            return count + (slot.id === sortedIds[index] ? 1 : 0);
+        }, 0);
 
-        if (isCorrect) {
+        if (correctCount === events.length) {
             showModal('Great job!', 'You ordered all events correctly.');
         } else {
             showModal('Almost there', 'The order is not quite right yet. Try again!');
         }
+
+        submitScore(correctCount);
     };
 
     if (prevBtn) {
