@@ -105,6 +105,7 @@ class DDTG_Add_New {
                 const attemptLimitInput = document.getElementById('ddtg_attempt_limit');
                 const attemptPeriodInput = document.getElementById('ddtg_attempt_period');
                 const eventsInput = document.getElementById('ddtg_number_of_events');
+                const editGameUrl = '<?php echo $is_edit ? esc_url( admin_url( 'admin.php?page=ddtg-add-new&game_id=' . $game_id ) ) : ''; ?>';
                 let latestEventCount = 0;
 
                 const setFieldAvailability = (enabled) => {
@@ -161,12 +162,46 @@ class DDTG_Add_New {
                     return;
                 }
 
-                const showPreview = (html) => {
+                const appendEditButton = () => {
+                    if (!previewContainer) {
+                        return;
+                    }
+
+                    const existingButton = document.getElementById('edit-game-btn');
+                    if (existingButton) {
+                        existingButton.remove();
+                    }
+
+                    const editBtn = document.createElement('button');
+                    editBtn.id = 'edit-game-btn';
+                    editBtn.className = 'button button-secondary';
+                    editBtn.type = 'button';
+                    editBtn.textContent = '<?php echo esc_js( __( 'Edit', 'draglearndtg' ) ); ?>';
+                    editBtn.addEventListener('click', () => {
+                        if (editGameUrl) {
+                            window.location.href = editGameUrl;
+                            return;
+                        }
+
+                        const form = document.querySelector('form');
+                        if (form) {
+                            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    });
+
+                    previewContainer.appendChild(editBtn);
+                };
+
+                const showPreview = (html, shouldShowEditButton = false) => {
                     previewContainer.innerHTML = html;
                     previewContainer.style.display = 'block';
 
                     if (additionalFields) {
                         additionalFields.style.display = '';
+                    }
+
+                    if (shouldShowEditButton) {
+                        appendEditButton();
                     }
 
                     setFieldAvailability(true);
@@ -216,7 +251,7 @@ class DDTG_Add_New {
                                 }
                             }
 
-                            showPreview(data.data.html);
+                            showPreview(data.data.html, latestEventCount > 0);
                         })
                         .catch(() => {
                             renderError('<?php echo esc_js( __( 'Unexpected error while previewing the CSV.', 'draglearndtg' ) ); ?>');
@@ -516,9 +551,7 @@ class DDTG_Add_New {
      * @return string|WP_Error
      */
     private static function build_csv_preview_table( $csv_events ) {
-        $rows = array_slice( $csv_events, 0, 5 );
-
-        if ( empty( $rows ) ) {
+        if ( empty( $csv_events ) ) {
             return new WP_Error( 'ddtg_preview_empty', __( 'No data rows were found in the CSV file.', 'draglearndtg' ) );
         }
 
@@ -534,7 +567,7 @@ class DDTG_Add_New {
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ( $rows as $row ) : ?>
+                <?php foreach ( $csv_events as $row ) : ?>
                     <tr>
                         <td><?php echo esc_html( $row['event_name'] ); ?></td>
                         <td><?php echo esc_html( $row['description'] ); ?></td>
