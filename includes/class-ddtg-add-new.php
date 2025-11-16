@@ -105,6 +105,7 @@ class DDTG_Add_New {
                 const attemptLimitInput = document.getElementById('ddtg_attempt_limit');
                 const attemptPeriodInput = document.getElementById('ddtg_attempt_period');
                 const eventsInput = document.getElementById('ddtg_number_of_events');
+                let latestEventCount = 0;
 
                 const setFieldAvailability = (enabled) => {
                     [attemptLimitInput, attemptPeriodInput, eventsInput]
@@ -172,6 +173,7 @@ class DDTG_Add_New {
                 };
 
                 const renderError = (message) => {
+                    latestEventCount = 0;
                     showPreview(`<div class="notice notice-error" style="padding: 10px;">${message}</div>`);
                 };
 
@@ -202,6 +204,16 @@ class DDTG_Add_New {
                             if (!data || !data.success) {
                                 renderError(data && data.data && data.data.message ? data.data.message : '<?php echo esc_js( __( 'Unable to process the CSV file.', 'draglearndtg' ) ); ?>');
                                 return;
+                            }
+
+                            latestEventCount = data.data.eventCount ? parseInt(data.data.eventCount, 10) : 0;
+
+                            if (eventsInput && latestEventCount > 0) {
+                                eventsInput.max = latestEventCount;
+
+                                if (Number(eventsInput.value) > latestEventCount) {
+                                    eventsInput.value = latestEventCount;
+                                }
                             }
 
                             showPreview(data.data.html);
@@ -256,6 +268,30 @@ class DDTG_Add_New {
         }
 
         $game_data['num_events_to_show'] = absint( $game_data['num_events_to_show'] );
+        $csv_events                      = null;
+        $event_count                    = 0;
+
+        if ( self::is_valid_csv_payload( $csv_file ) ) {
+            $csv_events = self::extract_csv_events( $csv_file );
+
+            if ( is_wp_error( $csv_events ) ) {
+                self::add_admin_error_notice( $csv_events->get_error_message() );
+                return;
+            }
+
+            $event_count = count( $csv_events );
+        } elseif ( $is_edit ) {
+            $event_count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$events_table} WHERE game_id = %d", $game_id ) );
+        }
+
+        if ( $game_data['num_events_to_show'] > $event_count && $event_count >= 0 ) {
+            if ( 0 === $event_count ) {
+                self::add_admin_error_notice( __( 'Error: No events are available. Please upload a CSV before setting Events to Display.', 'draglearndtg' ) );
+            } else {
+                self::add_admin_error_notice( sprintf( __( 'Error: Events to Display cannot exceed the %d events in your CSV.', 'draglearndtg' ), $event_count ) );
+            }
+            return;
+        }
 
         $game_record = array(
             'game_name'          => $game_data['game_name'],
@@ -283,7 +319,7 @@ class DDTG_Add_New {
         }
 
         if ( self::is_valid_csv_payload( $csv_file ) ) {
-            if ( ! self::import_events_from_csv( $events_table, $game_id, $csv_file ) ) {
+            if ( ! self::import_events_from_csv( $events_table, $game_id, $csv_file, $csv_events ) ) {
                 return;
             }
         } elseif ( ! $is_edit ) {
@@ -311,50 +347,53 @@ class DDTG_Add_New {
             wp_send_json_error( array( 'message' => __( 'Please upload a valid CSV file.', 'draglearndtg' ) ) );
         }
 
-        $preview_html = self::build_csv_preview_table( $csv_file );
+        $csv_events = self::extract_csv_events( $csv_file );
+
+        if ( is_wp_error( $csv_events ) ) {
+            wp_send_json_error( array( 'message' => $csv_events->get_error_message() ) );
+        }
+
+        $preview_html = self::build_csv_preview_table( $csv_events );
 
         if ( is_wp_error( $preview_html ) ) {
             wp_send_json_error( array( 'message' => $preview_html->get_error_message() ) );
         }
 
-        wp_send_json_success( array( 'html' => $preview_html ) );
+        wp_send_json_success(
+            array(
+                'html'       => $preview_html,
+                'eventCount' => count( $csv_events ),
+            )
+        );
     }
 
     /**
-     * Import events from the uploaded CSV file.
+     * Extract sanitized events from a CSV payload.
      *
-     * @param string $events_table Table name for events.
-     * @param int    $game_id      Game ID.
-     * @param array  $csv_file     Uploaded CSV data.
+     * @param array $csv_events Uploaded CSV payload.
      *
-     * @return bool
+     * @return array|WP_Error
      */
-    private static function import_events_from_csv( $events_table, $game_id, $csv_file ) {
-        global $wpdb;
-
+    private static function extract_csv_events( $csv_file ) {
         $handle = fopen( $csv_file['tmp_name'], 'rb' );
         if ( false === $handle ) {
-            self::add_admin_error_notice( __( 'Unable to read the uploaded CSV file.', 'draglearndtg' ) );
-            return false;
+            return new WP_Error( 'ddtg_csv_unreadable', __( 'Unable to read the uploaded CSV file.', 'draglearndtg' ) );
         }
 
         $header_row = fgetcsv( $handle );
         if ( empty( $header_row ) ) {
             fclose( $handle );
-            self::add_admin_error_notice( __( 'The CSV file must include a header row.', 'draglearndtg' ) );
-            return false;
+            return new WP_Error( 'ddtg_csv_header', __( 'The CSV file must include a header row.', 'draglearndtg' ) );
         }
 
         if ( count( $header_row ) < 3 ) {
             fclose( $handle );
-            self::add_admin_error_notice( __( 'CSV files must include at least three columns.', 'draglearndtg' ) );
-            return false;
+            return new WP_Error( 'ddtg_csv_columns', __( 'CSV files must include at least three columns.', 'draglearndtg' ) );
         }
 
         if ( ! self::is_valid_encoding( $header_row ) ) {
             fclose( $handle );
-            self::add_admin_error_notice( __( 'Unable to read the CSV header because of an encoding issue.', 'draglearndtg' ) );
-            return false;
+            return new WP_Error( 'ddtg_csv_header_encoding', __( 'Unable to read the CSV header because of an encoding issue.', 'draglearndtg' ) );
         }
 
         $header_row        = array_map( 'sanitize_key', $header_row );
@@ -364,58 +403,37 @@ class DDTG_Add_New {
 
         if ( ! empty( $missing_columns ) ) {
             fclose( $handle );
-            self::add_admin_error_notice( sprintf( __( 'Missing required CSV columns: %s', 'draglearndtg' ), implode( ', ', $missing_columns ) ) );
-            return false;
+            return new WP_Error( 'ddtg_csv_missing_columns', sprintf( __( 'Missing required CSV columns: %s', 'draglearndtg' ), implode( ', ', $missing_columns ) ) );
         }
 
         $events_to_insert = array();
-        $line_number      = 1; // Account for the header row.
+        $line_number      = 1; // Account for header already read.
 
-        while ( true ) {
-            $row = fgetcsv( $handle );
-            if ( false === $row ) {
-                if ( ! feof( $handle ) ) {
-                    fclose( $handle );
-                    self::add_admin_error_notice( __( 'Unable to parse the CSV because of an encoding issue.', 'draglearndtg' ) );
-                    return false;
-                }
-                break;
-            }
+        while ( ( $row = fgetcsv( $handle ) ) !== false ) {
+            ++$line_number;
 
-            $line_number++;
-
-            if ( ! array_filter( $row, 'strlen' ) ) {
+            if ( count( $row ) < count( $header_row ) ) {
                 fclose( $handle );
-                self::add_admin_error_notice( sprintf( __( 'Empty rows detected at line %d. Please remove blank lines and try again.', 'draglearndtg' ), $line_number ) );
-                return false;
-            }
-
-            if ( count( $row ) < 3 ) {
-                fclose( $handle );
-                self::add_admin_error_notice( sprintf( __( 'Row %d does not include the required columns.', 'draglearndtg' ), $line_number ) );
-                return false;
+                return new WP_Error( 'ddtg_csv_short_row', sprintf( __( 'Row %d has fewer columns than the header.', 'draglearndtg' ), $line_number ) );
             }
 
             if ( ! self::is_valid_encoding( $row ) ) {
                 fclose( $handle );
-                self::add_admin_error_notice( sprintf( __( 'Encoding failure detected near line %d.', 'draglearndtg' ), $line_number ) );
-                return false;
+                return new WP_Error( 'ddtg_csv_row_encoding', __( 'Unable to read one of the CSV rows because of encoding.', 'draglearndtg' ) );
             }
 
-            $event_name = self::sanitize_csv_value( $row[ $available_columns['event_name'] ], 'text' );
+            $event_name  = self::sanitize_csv_value( $row[ $available_columns['event_name'] ], 'text' );
             $description = self::sanitize_csv_value( $row[ $available_columns['description'] ], 'textarea' );
-            $event_date = self::sanitize_csv_value( $row[ $available_columns['event_date'] ], 'text' );
+            $event_date  = self::sanitize_csv_value( $row[ $available_columns['event_date'] ], 'text' );
 
             if ( is_wp_error( $event_name ) || is_wp_error( $description ) || is_wp_error( $event_date ) ) {
                 fclose( $handle );
-                self::add_admin_error_notice( __( 'CSV rows cannot include HTML tags or scripts.', 'draglearndtg' ) );
-                return false;
+                return new WP_Error( 'ddtg_csv_disallowed_markup', __( 'CSV rows cannot include HTML tags or scripts.', 'draglearndtg' ) );
             }
 
             if ( '' === $event_name || '' === $event_date || '' === $description ) {
                 fclose( $handle );
-                self::add_admin_error_notice( sprintf( __( 'Missing required data at line %d.', 'draglearndtg' ), $line_number ) );
-                return false;
+                return new WP_Error( 'ddtg_csv_missing_data', sprintf( __( 'Missing required data at line %d.', 'draglearndtg' ), $line_number ) );
             }
 
             $image_url = '';
@@ -424,8 +442,7 @@ class DDTG_Add_New {
 
                 if ( is_wp_error( $image_url ) ) {
                     fclose( $handle );
-                    self::add_admin_error_notice( __( 'Image URLs cannot include scripts or HTML tags.', 'draglearndtg' ) );
-                    return false;
+                    return new WP_Error( 'ddtg_csv_image_markup', __( 'Image URLs cannot include scripts or HTML tags.', 'draglearndtg' ) );
                 }
             }
 
@@ -440,7 +457,29 @@ class DDTG_Add_New {
         fclose( $handle );
 
         if ( empty( $events_to_insert ) ) {
-            self::add_admin_error_notice( __( 'No events were imported. Please verify the CSV contents.', 'draglearndtg' ) );
+            return new WP_Error( 'ddtg_csv_empty', __( 'No events were imported. Please verify the CSV contents.', 'draglearndtg' ) );
+        }
+
+        return $events_to_insert;
+    }
+
+    /**
+     * Import events from the uploaded CSV file.
+     *
+     * @param string $events_table Table name for events.
+     * @param int    $game_id      Game ID.
+     * @param array  $csv_file     Uploaded CSV data.
+     * @param array  $parsed_events Optional pre-parsed CSV data.
+     *
+     * @return bool
+     */
+    private static function import_events_from_csv( $events_table, $game_id, $csv_file, $parsed_events = null ) {
+        global $wpdb;
+
+        $events_to_insert = is_array( $parsed_events ) ? $parsed_events : self::extract_csv_events( $csv_file );
+
+        if ( is_wp_error( $events_to_insert ) ) {
+            self::add_admin_error_notice( $events_to_insert->get_error_message() );
             return false;
         }
 
@@ -461,8 +500,8 @@ class DDTG_Add_New {
                 $values[]       = $event['image_url'];
             }
 
-            $query = 'INSERT INTO ' . $events_table . ' (game_id, event_name, event_date, description, image_url) VALUES ' . implode( ', ', $placeholders );
-            $prepared = $wpdb->prepare( $query, $values );
+            $query     = 'INSERT INTO ' . $events_table . ' (game_id, event_name, event_date, description, image_url) VALUES ' . implode( ', ', $placeholders );
+            $prepared  = $wpdb->prepare( $query, $values );
             $wpdb->query( $prepared );
         }
 
@@ -476,76 +515,8 @@ class DDTG_Add_New {
      *
      * @return string|WP_Error
      */
-    private static function build_csv_preview_table( $csv_file ) {
-        $handle = fopen( $csv_file['tmp_name'], 'rb' );
-        if ( false === $handle ) {
-            return new WP_Error( 'ddtg_preview_unreadable', __( 'Unable to read the uploaded CSV file.', 'draglearndtg' ) );
-        }
-
-        $header_row = fgetcsv( $handle );
-        if ( empty( $header_row ) ) {
-            fclose( $handle );
-            return new WP_Error( 'ddtg_preview_header', __( 'The CSV file must include a header row.', 'draglearndtg' ) );
-        }
-
-        if ( count( $header_row ) < 3 ) {
-            fclose( $handle );
-            return new WP_Error( 'ddtg_preview_columns', __( 'CSV files must include at least three columns.', 'draglearndtg' ) );
-        }
-
-        if ( ! self::is_valid_encoding( $header_row ) ) {
-            fclose( $handle );
-            return new WP_Error( 'ddtg_preview_encoding', __( 'Unable to read the CSV header because of an encoding issue.', 'draglearndtg' ) );
-        }
-
-        $header_row        = array_map( 'sanitize_key', $header_row );
-        $available_columns = array_flip( $header_row );
-        $required_columns  = array( 'event_name', 'description', 'event_date' );
-        $missing_columns   = array_diff( $required_columns, array_keys( $available_columns ) );
-
-        if ( ! empty( $missing_columns ) ) {
-            fclose( $handle );
-            return new WP_Error( 'ddtg_preview_missing', sprintf( __( 'Missing required CSV columns: %s', 'draglearndtg' ), implode( ', ', $missing_columns ) ) );
-        }
-
-        $rows       = array();
-        $line_count = 0;
-
-        while ( $line_count < 5 ) {
-            $row = fgetcsv( $handle );
-            if ( false === $row ) {
-                break;
-            }
-
-            if ( ! self::is_valid_encoding( $row ) ) {
-                fclose( $handle );
-                return new WP_Error( 'ddtg_preview_row_encoding', __( 'Unable to read one of the CSV rows because of encoding.', 'draglearndtg' ) );
-            }
-
-            $event_name = self::sanitize_csv_value( $row[ $available_columns['event_name'] ], 'text' );
-            $description = self::sanitize_csv_value( $row[ $available_columns['description'] ], 'textarea' );
-            $event_date = self::sanitize_csv_value( $row[ $available_columns['event_date'] ], 'text' );
-
-            if ( is_wp_error( $event_name ) || is_wp_error( $description ) || is_wp_error( $event_date ) ) {
-                fclose( $handle );
-                return new WP_Error( 'ddtg_preview_markup', __( 'CSV rows cannot include HTML tags or scripts.', 'draglearndtg' ) );
-            }
-
-            if ( '' === $event_name || '' === $description || '' === $event_date ) {
-                fclose( $handle );
-                return new WP_Error( 'ddtg_preview_missing_data', __( 'Some rows are missing required data.', 'draglearndtg' ) );
-            }
-
-            $rows[] = array(
-                'event_name'  => $event_name,
-                'description' => $description,
-                'event_date'  => $event_date,
-            );
-
-            $line_count++;
-        }
-
-        fclose( $handle );
+    private static function build_csv_preview_table( $csv_events ) {
+        $rows = array_slice( $csv_events, 0, 5 );
 
         if ( empty( $rows ) ) {
             return new WP_Error( 'ddtg_preview_empty', __( 'No data rows were found in the CSV file.', 'draglearndtg' ) );
