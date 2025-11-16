@@ -193,9 +193,21 @@ class DDTG_Add_New {
             return false;
         }
 
+        if ( count( $header_row ) < 3 ) {
+            fclose( $handle );
+            self::add_admin_error_notice( __( 'CSV files must include at least three columns.', 'draglearndtg' ) );
+            return false;
+        }
+
+        if ( ! self::is_valid_encoding( $header_row ) ) {
+            fclose( $handle );
+            self::add_admin_error_notice( __( 'Unable to read the CSV header because of an encoding issue.', 'draglearndtg' ) );
+            return false;
+        }
+
         $header_row        = array_map( 'sanitize_key', $header_row );
         $available_columns = array_flip( $header_row );
-        $required_columns  = array( 'event_name', 'event_date' );
+        $required_columns  = array( 'event_name', 'description', 'event_date' );
         $missing_columns   = array_diff( $required_columns, array_keys( $available_columns ) );
 
         if ( ! empty( $missing_columns ) ) {
@@ -204,44 +216,102 @@ class DDTG_Add_New {
             return false;
         }
 
-        // Replace existing events for this game.
-        $wpdb->delete( $events_table, array( 'game_id' => $game_id ) );
+        $events_to_insert = array();
+        $line_number      = 1; // Account for the header row.
 
-        $inserted = 0;
-        while ( ( $row = fgetcsv( $handle ) ) !== false ) {
+        while ( true ) {
+            $row = fgetcsv( $handle );
+            if ( false === $row ) {
+                if ( ! feof( $handle ) ) {
+                    fclose( $handle );
+                    self::add_admin_error_notice( __( 'Unable to parse the CSV because of an encoding issue.', 'draglearndtg' ) );
+                    return false;
+                }
+                break;
+            }
+
+            $line_number++;
+
             if ( ! array_filter( $row, 'strlen' ) ) {
-                continue;
+                fclose( $handle );
+                self::add_admin_error_notice( sprintf( __( 'Empty rows detected at line %d. Please remove blank lines and try again.', 'draglearndtg' ), $line_number ) );
+                return false;
             }
 
-            $event_name = sanitize_text_field( $row[ $available_columns['event_name'] ] );
-            $event_date = sanitize_text_field( $row[ $available_columns['event_date'] ] );
-
-            if ( '' === $event_name || '' === $event_date ) {
-                continue;
+            if ( count( $row ) < 3 ) {
+                fclose( $handle );
+                self::add_admin_error_notice( sprintf( __( 'Row %d does not include the required columns.', 'draglearndtg' ), $line_number ) );
+                return false;
             }
 
-            $description = isset( $available_columns['description'] ) ? sanitize_textarea_field( $row[ $available_columns['description'] ] ) : '';
-            $image_url   = isset( $available_columns['image_url'] ) ? esc_url_raw( $row[ $available_columns['image_url'] ] ) : '';
+            if ( ! self::is_valid_encoding( $row ) ) {
+                fclose( $handle );
+                self::add_admin_error_notice( sprintf( __( 'Encoding failure detected near line %d.', 'draglearndtg' ), $line_number ) );
+                return false;
+            }
 
-            $wpdb->insert(
-                $events_table,
-                array(
-                    'game_id'     => $game_id,
-                    'event_name'  => $event_name,
-                    'event_date'  => $event_date,
-                    'description' => $description,
-                    'image_url'   => $image_url ? $image_url : null,
-                )
+            $event_name = self::sanitize_csv_value( $row[ $available_columns['event_name'] ], 'text' );
+            $description = self::sanitize_csv_value( $row[ $available_columns['description'] ], 'textarea' );
+            $event_date = self::sanitize_csv_value( $row[ $available_columns['event_date'] ], 'text' );
+
+            if ( is_wp_error( $event_name ) || is_wp_error( $description ) || is_wp_error( $event_date ) ) {
+                fclose( $handle );
+                self::add_admin_error_notice( __( 'CSV rows cannot include HTML tags or scripts.', 'draglearndtg' ) );
+                return false;
+            }
+
+            if ( '' === $event_name || '' === $event_date || '' === $description ) {
+                fclose( $handle );
+                self::add_admin_error_notice( sprintf( __( 'Missing required data at line %d.', 'draglearndtg' ), $line_number ) );
+                return false;
+            }
+
+            $image_url = '';
+            if ( isset( $available_columns['image_url'] ) && isset( $row[ $available_columns['image_url'] ] ) ) {
+                $image_url = self::sanitize_csv_value( $row[ $available_columns['image_url'] ], 'url' );
+
+                if ( is_wp_error( $image_url ) ) {
+                    fclose( $handle );
+                    self::add_admin_error_notice( __( 'Image URLs cannot include scripts or HTML tags.', 'draglearndtg' ) );
+                    return false;
+                }
+            }
+
+            $events_to_insert[] = array(
+                'event_name'  => $event_name,
+                'event_date'  => $event_date,
+                'description' => $description,
+                'image_url'   => $image_url,
             );
-
-            $inserted++;
         }
 
         fclose( $handle );
 
-        if ( 0 === $inserted ) {
+        if ( empty( $events_to_insert ) ) {
             self::add_admin_error_notice( __( 'No events were imported. Please verify the CSV contents.', 'draglearndtg' ) );
             return false;
+        }
+
+        // Replace existing events for this game.
+        $wpdb->delete( $events_table, array( 'game_id' => $game_id ) );
+
+        $chunks = array_chunk( $events_to_insert, 100 );
+        foreach ( $chunks as $chunk ) {
+            $placeholders = array();
+            $values       = array();
+
+            foreach ( $chunk as $event ) {
+                $placeholders[] = '( %d, %s, %s, %s, %s )';
+                $values[]       = $game_id;
+                $values[]       = $event['event_name'];
+                $values[]       = $event['event_date'];
+                $values[]       = $event['description'];
+                $values[]       = $event['image_url'];
+            }
+
+            $query = 'INSERT INTO ' . $events_table . ' (game_id, event_name, event_date, description, image_url) VALUES ' . implode( ', ', $placeholders );
+            $prepared = $wpdb->prepare( $query, $values );
+            $wpdb->query( $prepared );
         }
 
         return true;
@@ -348,7 +418,18 @@ class DDTG_Add_New {
      * @return bool
      */
     private static function passes_csv_file_checks( $csv_file ) {
-        if ( ! self::has_file_to_process( $csv_file ) ) {
+        if ( ! is_array( $csv_file ) || ! isset( $csv_file['error'] ) ) {
+            self::add_admin_error_notice( __( 'Error: No file was uploaded.', 'draglearndtg' ) );
+            return false;
+        }
+
+        if ( UPLOAD_ERR_NO_FILE === (int) $csv_file['error'] || empty( $csv_file['tmp_name'] ) ) {
+            self::add_admin_error_notice( __( 'Error: CSV upload missing. Please choose a file.', 'draglearndtg' ) );
+            return false;
+        }
+
+        if ( UPLOAD_ERR_OK !== (int) $csv_file['error'] ) {
+            self::add_admin_error_notice( __( 'Error: The upload failed. Please try again.', 'draglearndtg' ) );
             return false;
         }
 
@@ -362,5 +443,51 @@ class DDTG_Add_New {
         }
 
         return true;
+    }
+
+    /**
+     * Determine whether the provided CSV values use UTF-8 encoding.
+     *
+     * @param array $row Row data to inspect.
+     *
+     * @return bool
+     */
+    private static function is_valid_encoding( $row ) {
+        if ( ! function_exists( 'mb_detect_encoding' ) ) {
+            return true;
+        }
+
+        $row_string = implode( '', (array) $row );
+        return false !== mb_detect_encoding( $row_string, 'UTF-8', true );
+    }
+
+    /**
+     * Sanitize CSV values and block markup/scripts.
+     *
+     * @param string $value   Raw value.
+     * @param string $context Context of the value (text, textarea, url).
+     *
+     * @return string|WP_Error
+     */
+    private static function sanitize_csv_value( $value, $context = 'text' ) {
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return '';
+        }
+
+        if ( $value !== wp_strip_all_tags( $value ) ) {
+            return new WP_Error( 'ddtg_disallowed_markup' );
+        }
+
+        switch ( $context ) {
+            case 'textarea':
+                return sanitize_textarea_field( $value );
+            case 'url':
+                return esc_url_raw( $value );
+            case 'text':
+            default:
+                return sanitize_text_field( $value );
+        }
     }
 }
