@@ -279,6 +279,10 @@ class DDTG_Add_New {
         $games_table  = $wpdb->prefix . 'ddg_games';
         $events_table = $wpdb->prefix . 'ddg_events';
 
+        error_log( 'DDG: SAVE GAME triggered' );
+        error_log( 'DDG POST: ' . print_r( $_POST, true ) );
+        error_log( 'DDG FILES: ' . print_r( $_FILES, true ) );
+
         $game_id = isset( $_POST['ddtg_game_id'] ) ? intval( $_POST['ddtg_game_id'] ) : 0;
         $is_edit = $game_id > 0;
 
@@ -341,14 +345,20 @@ class DDTG_Add_New {
                 self::add_admin_error_notice( __( 'Unable to update the game. Please try again.', 'draglearndtg' ) );
                 return;
             }
+
+            error_log( 'DDG SQL (update): ' . $wpdb->last_query );
         } else {
             $game_record['user_id'] = get_current_user_id();
             $inserted               = $wpdb->insert( $games_table, $game_record );
 
             if ( ! $inserted ) {
+                error_log( 'DDG ERROR: Insert failed: ' . $wpdb->last_error );
                 self::add_admin_error_notice( __( 'Unable to create the game. Please try again.', 'draglearndtg' ) );
                 return;
             }
+
+            error_log( 'DDG SQL (insert): ' . $wpdb->last_query );
+            error_log( 'DDG: Insert OK, new game_id = ' . $wpdb->insert_id );
 
             $game_id = (int) $wpdb->insert_id;
         }
@@ -533,11 +543,15 @@ class DDTG_Add_New {
                 $values[]       = $event['event_date'];
                 $values[]       = $event['description'];
                 $values[]       = $event['image_url'];
+
+                error_log( 'DDG EVENT INSERT: ' . $event['event_name'] . ' for game_id=' . $game_id );
             }
 
             $query     = 'INSERT INTO ' . $events_table . ' (game_id, event_name, event_date, description, image_url) VALUES ' . implode( ', ', $placeholders );
             $prepared  = $wpdb->prepare( $query, $values );
             $wpdb->query( $prepared );
+
+            error_log( 'DDG SQL (events insert): ' . $wpdb->last_query );
         }
 
         return true;
