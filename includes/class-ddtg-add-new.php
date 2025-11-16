@@ -51,15 +51,6 @@ class DDTG_Add_New {
                     </tr>
                     <tr valign="top">
                         <th scope="row">
-                            <label for="ddtg_number_of_events"><?php esc_html_e( 'Events to Display', 'draglearndtg' ); ?></label>
-                        </th>
-                        <td>
-                            <input type="number" id="ddtg_number_of_events" name="ddtg_number_of_events" class="regular-text" min="1" value="<?php echo esc_attr( $current_events_limit ); ?>" required />
-                            <p class="description"><?php esc_html_e( 'Controls how many events will be randomly selected per play session.', 'draglearndtg' ); ?></p>
-                        </td>
-                    </tr>
-                    <tr valign="top">
-                        <th scope="row">
                             <label for="ddtg_csv_file"><?php esc_html_e( 'CSV File', 'draglearndtg' ); ?></label>
                         </th>
                         <td>
@@ -71,6 +62,15 @@ class DDTG_Add_New {
                                     <em><?php esc_html_e( 'Upload a new CSV to replace the existing events.', 'draglearndtg' ); ?></em>
                                 <?php endif; ?>
                             </p>
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row">
+                            <label for="ddtg_number_of_events"><?php esc_html_e( 'Events to Display', 'draglearndtg' ); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" id="ddtg_number_of_events" name="ddtg_number_of_events" class="regular-text" min="1" value="<?php echo esc_attr( $current_events_limit ); ?>" required />
+                            <p class="description"><?php esc_html_e( 'Controls how many events will be randomly selected per play session.', 'draglearndtg' ); ?></p>
                         </td>
                     </tr>
                 </table>
