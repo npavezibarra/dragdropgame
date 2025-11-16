@@ -128,35 +128,12 @@ class DDTG_Shortcode {
     }
 
     private static function enqueue_game_scripts( $attempt_id, $events ) {
-        wp_enqueue_style( 'draglearn-game-style', plugins_url( '../assets/css/draglearn-game.css', __FILE__ ) );
-        wp_enqueue_script( 'draglearn-game-script', plugins_url( '../assets/js/draglearn-game.js', __FILE__ ), array( 'jquery' ), DRAGLEARN_VERSION, true );
-
-        $localized_events = array_map(
-            static function ( $event ) {
-                return array(
-                    'event_name'  => sanitize_text_field( $event->event_name ),
-                    'event_date'  => sanitize_text_field( $event->event_date ),
-                    'description' => sanitize_textarea_field( $event->description ),
-                    'image_url'   => esc_url_raw( $event->image_url ),
-                );
-            },
-            $events
-        );
-
-        wp_localize_script(
-            'draglearn-game-script',
-            'ddtg_game_data',
-            array(
-                'ajax_url'   => admin_url( 'admin-ajax.php' ),
-                'nonce'      => wp_create_nonce( 'ddtg_game_nonce' ),
-                'attempt_id' => $attempt_id,
-            )
-        );
-
-        wp_add_inline_script(
-            'draglearn-game-script',
-            'window.dragdropgame_events = ' . wp_json_encode( $localized_events ) . ';',
-            'before'
+        wp_enqueue_script(
+            'ddtg-timeline-game',
+            plugins_url( '../assets/js/timeline-game.js', __FILE__ ),
+            array(),
+            DRAGLEARN_VERSION,
+            true
         );
     }
 
