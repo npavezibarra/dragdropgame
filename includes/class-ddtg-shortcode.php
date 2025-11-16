@@ -162,24 +162,7 @@ class DDTG_Shortcode {
 
     private static function render_game_html( $game, $attempt_id ) {
         ob_start();
-        ?>
-        <div id="draglearn-game" data-attempt-id="<?php echo esc_attr( $attempt_id ); ?>">
-            <h2><?php echo esc_html( $game->game_name ); ?></h2>
-            <p><?php esc_html_e( 'Match each event with the correct date to complete the timeline.', 'draglearndtg' ); ?></p>
-            <div class="drag-container">
-                <div id="lessons-pool">
-                    <h3><?php esc_html_e( 'Events', 'draglearndtg' ); ?></h3>
-                    <div id="ddtg-events"></div>
-                </div>
-                <div id="courses-zones">
-                    <h3><?php esc_html_e( 'Dates', 'draglearndtg' ); ?></h3>
-                    <div id="ddtg-dates"></div>
-                </div>
-            </div>
-            <button id="finish-game"><?php esc_html_e( 'Finish', 'draglearndtg' ); ?></button>
-            <p id="feedback" class="feedback"></p>
-        </div>
-        <?php
+        include plugin_dir_path( __FILE__ ) . '../templates/frontend-timeline.php';
         return ob_get_clean();
     }
 }
