@@ -1,6 +1,9 @@
 // game_events will be injected by PHP using wp_add_inline_script()
 
 function submitScore(score) {
+    if (window.ddtg_score_sent) return;
+    window.ddtg_score_sent = true;
+
     const wrapper = document.getElementById('ddtg-timeline-game-wrapper');
     if (!wrapper) return;
 
@@ -64,13 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.closeModal = closeModal;
 
-    const showModal = (title, message) => {
+    const showMessage = (title, htmlMessage, statusClass = '') => {
         if (modalTitle) {
             modalTitle.textContent = title;
+            modalTitle.className = `text-xl font-bold mb-3 ${statusClass}`.trim();
         }
 
         if (modalMessage) {
-            modalMessage.textContent = message;
+            modalMessage.innerHTML = htmlMessage;
         }
 
         if (modal) {
@@ -98,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         events.forEach((event, index) => {
             const slot = document.createElement('div');
-            slot.className = 'flex items-center justify-center bg-gray-100 border border-dashed border-gray-400 rounded-lg min-h-[60px] px-3 py-2 text-center shadow-inner drop-slot';
+            slot.className = 'flex items-center justify-center bg-gray-100 border border-dashed border-gray-400 rounded-lg min-h-[60px] px-3 py-2 text-center shadow-inner drop-slot placeholder';
             slot.dataset.slotIndex = String(index);
             slot.dataset.expectedDate = event.date ?? '';
             slot.addEventListener('dragover', (e) => {
@@ -167,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         events.forEach((event, index) => {
             const slide = document.createElement('div');
             slide.id = `timeline-slide-${event.id ?? index}`;
-            slide.className = 'absolute inset-0 flex flex-col items-center justify-center bg-white shadow-lg rounded-xl p-6 transition-transform duration-300 ease-in-out';
+            slide.className = 'carousel-slide absolute inset-0 flex flex-col items-center justify-center bg-white shadow-lg rounded-xl p-6 transition-transform duration-300 ease-in-out';
             slide.style.transform = `translateX(${index * 100}%)`;
             slide.setAttribute('draggable', 'true');
             slide.dataset.eventDate = event.date ?? '';
@@ -227,6 +231,18 @@ document.addEventListener('DOMContentLoaded', () => {
             .map((entry) => entry.id);
     };
 
+    const lockUIAfterFinish = () => {
+        document.querySelectorAll('.placeholder').forEach((p) => {
+            p.classList.add('opacity-60');
+            p.style.pointerEvents = 'none';
+        });
+
+        document.querySelectorAll('.carousel-slide').forEach((slide) => {
+            slide.setAttribute('draggable', 'false');
+            slide.style.pointerEvents = 'none';
+        });
+    };
+
     const checkOrder = () => {
         const sortedIds = getSortedEventIds();
         const slots = Object.keys(placements)
@@ -234,7 +250,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .sort((a, b) => a.slot - b.slot);
 
         if (slots.length !== events.length) {
-            showModal('Incomplete', 'Place all events into the slots before finishing.');
+            showMessage('Incomplete', 'Place all events into the slots before finishing.', 'text-yellow-600');
+            if (finishBtn) {
+                finishBtn.disabled = false;
+                finishBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
             return;
         }
 
@@ -247,11 +267,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         submitScore(correctCount);
 
-        if (isCorrect) {
-            showModal('Great job!', 'You ordered all events correctly.');
-        } else {
-            showModal('Almost there', 'The order is not quite right yet. Try again!');
-        }
+        const resultTitle = isCorrect ? 'Great job!' : 'Almost there';
+        const resultHTML = isCorrect
+            ? 'You ordered all events correctly.'
+            : `You got ${correctCount} of ${totalEvents} in the right spot.`;
+        const resultClass = isCorrect ? 'text-green-600' : 'text-red-600';
+
+        lockUIAfterFinish();
+        showMessage(resultTitle, resultHTML, resultClass);
     };
 
     if (prevBtn) {
@@ -266,8 +289,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const onFinishClick = () => {
+        if (!finishBtn) {
+            return;
+        }
+
+        finishBtn.disabled = true;
+        finishBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        checkOrder();
+    };
+
     if (finishBtn) {
-        finishBtn.addEventListener('click', checkOrder);
+        finishBtn.addEventListener('click', onFinishClick);
     }
 
     buildDropZones();
