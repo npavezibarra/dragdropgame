@@ -119,33 +119,39 @@ class DDTG_Shortcode {
 
         error_log( 'DDG_SHORTCODE: JS_EVENTS = ' . print_r( $js_events, true ) );
 
-        $json_events = wp_json_encode( $js_events );
-
         //-- Enqueue assets -------------------------------------------------------
         error_log( 'DDG_SHORTCODE: Enqueueing scripts…' );
 
         wp_enqueue_script( 'ddg-game-script' );
         wp_enqueue_style( 'ddg-game-style' );
 
+        /**
+         * Move dynamic data into an inline script attached to the registered
+         * asset to avoid themes stripping inline <script> tags that appear in
+         * shortcode output (common in block themes like Twenty Twenty-Five).
+         */
+        wp_add_inline_script(
+            'ddg-game-script',
+            'window.ddgGameEvents = ' . wp_json_encode( $js_events ) . ';',
+            'before'
+        );
+
         //-- Build HTML -----------------------------------------------------------
 
         error_log( 'DDG_SHORTCODE: Rendering HTML…' );
 
+        $template_path = trailingslashit( dirname( __DIR__ ) ) . 'templates/frontend-timeline.php';
+
         ob_start();
-        ?>
 
-        <script>
-            console.log("DDG: Injecting game_events");
-            const game_events = <?php echo $json_events; ?>;
-            console.log("DDG: game_events =", game_events);
-        </script>
+        if ( file_exists( $template_path ) ) {
+            include $template_path;
+        } else {
+            echo '<div id="ddg-game-wrapper">';
+            echo '<p>' . esc_html__( 'Timeline template missing.', 'draglearndtg' ) . '</p>';
+            echo '</div>';
+        }
 
-        <div id="ddg-game-wrapper">
-            <header id="top-bar-drop-zone"></header>
-            <main id="main-content-area"></main>
-        </div>
-
-        <?php
         $html = ob_get_clean();
 
         error_log( 'DDG_SHORTCODE: Final HTML length = ' . strlen( $html ) );

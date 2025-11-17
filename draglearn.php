@@ -151,3 +151,47 @@ add_action( 'wp_ajax_nopriv_record_score', array( 'DDTG_Admin', 'handle_score_su
  */
 include_once dirname( __FILE__ ) . '/includes/class-ddtg-shortcode.php';
 add_action( 'init', array( 'DDTG_Shortcode', 'init' ) );
+
+/**
+ * Ensure shortcode output is not stripped by block theme rendering.
+ *
+ * Some block themes (e.g., Twenty Twenty-Five) sanitize shortcode block output
+ * aggressively. If the content generated for the shortcode block is empty, we
+ * re-run the shortcode to guarantee markup is returned.
+ *
+ * @param string $block_content The block content about to be rendered.
+ * @param array  $block         Parsed block data.
+ * @return string
+ */
+function ddg_preserve_shortcode_block_output( $block_content, $block ) {
+    if ( empty( $block['blockName'] ) ) {
+        return $block_content;
+    }
+
+    // Only target shortcode/HTML-capable blocks.
+    $supported_blocks = array( 'core/shortcode', 'core/html', 'core/paragraph' );
+
+    if ( ! in_array( $block['blockName'], $supported_blocks, true ) ) {
+        return $block_content;
+    }
+
+    $raw_content = '';
+
+    if ( isset( $block['attrs']['text'] ) ) {
+        $raw_content = $block['attrs']['text'];
+    } elseif ( isset( $block['innerHTML'] ) ) {
+        $raw_content = $block['innerHTML'];
+    }
+
+    if ( false === strpos( $raw_content, '[dragdropgame' ) ) {
+        return $block_content;
+    }
+
+    // If the block rendered to nothing (e.g., stripped by KSES), rerender it.
+    if ( '' === trim( $block_content ) ) {
+        return do_shortcode( $raw_content );
+    }
+
+    return $block_content;
+}
+add_filter( 'render_block', 'ddg_preserve_shortcode_block_output', 9, 2 );
